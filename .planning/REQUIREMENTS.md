@@ -1,184 +1,135 @@
-# Requirements: CryptoTax Vietnam — Milestone v2.0
+# Requirements: CryptoTax Vietnam — Milestone v3.0
 
 **Defined:** 2026-02-18
 **Core Value:** Correctly parse any DeFi transaction into balanced double-entry journal entries. If parsing is wrong, everything downstream (gains, tax, reports) is wrong.
 
 ## v1 Requirements
 
-Requirements for milestone v2.0: Parser Diagnostics, Protocol Expansion, Multi-Chain.
+Requirements for milestone v3.0: Multi-Entity Client Management + CEX CSV Import.
 
-### Parser Foundation
+### Entity Management
 
-- [ ] **PFND-01**: ENTRY_TYPE class variable mutation bug is fixed — parsers return entry_type via ParseResult dataclass instead of mutating self.ENTRY_TYPE
-- [ ] **PFND-02**: ParseResult dataclass replaces mutable ENTRY_TYPE pattern across all existing parsers (GenericEVM, GenericSwap, AaveV3, UniswapV3, Curve, PancakeSwap, Binance)
-- [ ] **PFND-03**: Internal transactions loaded from Etherscan API during TX sync (native ETH from contract calls is currently missing)
-- [ ] **PFND-04**: Protocol contract addresses centralized in addresses.py with ProtocolDeployment dataclass (replaces per-file hardcoded address dicts)
-- [ ] **PFND-05**: Reusable wrap/unwrap handler created for token wrapping patterns (wstETH, SY tokens, etc.)
+- [ ] **ENTY-01**: Admin can create a new entity (client) with name and base currency
+- [ ] **ENTY-02**: Admin can list all entities and see wallet count per entity
+- [ ] **ENTY-03**: Admin can rename or soft-delete an entity
+- [ ] **ENTY-04**: UI has a global entity selector dropdown that persists across page navigation
+- [ ] **ENTY-05**: All API endpoints accept entity context (header or parameter) instead of hardcoded get_default()
+- [ ] **ENTY-06**: All UI pages (Wallets, Transactions, Journal, Errors, Tax, Reports) filter data by the selected entity
+- [ ] **ENTY-07**: Dashboard home shows stats scoped to the selected entity
 
-### Parser Diagnostics
+### CEX Import Infrastructure
 
-- [ ] **DIAG-01**: ParseErrorRecord stores contract_address and function_selector for failed TXs
-- [ ] **DIAG-02**: ParseErrorRecord stores detected_transfers (JSON) — all transfers found in the TX
-- [ ] **DIAG-03**: ParseErrorRecord stores detected_events (JSON) — all decoded events found in the TX
-- [ ] **DIAG-04**: ParseErrorRecord stores parsers_attempted (JSON) — list of parser names + match/decline reasons
-- [ ] **DIAG-05**: Alembic migration adds diagnostic_data JSONB + contract_address + function_selector columns to parse_error_records table
-- [ ] **DIAG-06**: Bookkeeper collects diagnostic data during parse attempt and stores it on error records
-- [ ] **DIAG-07**: Function selector displayed as decoded function name in error and parser debug views (e.g., "0x617ba037 → supply()")
+- [ ] **CIMP-01**: CsvImport model stores import metadata (entity_id, exchange, filename, row_count, status, created_at)
+- [ ] **CIMP-02**: CsvImportRow model stores each raw CSV row linked to its import (for audit trail + re-parse)
+- [ ] **CIMP-03**: POST /api/imports/upload accepts CSV file + entity_id, creates CsvImport record and stores rows
+- [ ] **CIMP-04**: GET /api/imports lists import history for an entity (filename, date, rows, success/error counts)
+- [ ] **CIMP-05**: Alembic migration for csv_imports and csv_import_rows tables
+- [ ] **CIMP-06**: Simple Upload page in UI — select entity, upload CSV, show parse progress and results
 
-### Error Page & Grouping
+### Binance CSV Parser
 
-- [ ] **ERRP-01**: Errors page loads without crashing (fix schema mismatch between backend ErrorSummaryResponse and frontend ErrorSummary)
-- [ ] **ERRP-02**: Error summary shows counts by error type, resolved count, and unresolved count
-- [ ] **ERRP-03**: Errors can be grouped by contract address (turns 500 errors into "3 contracts need parsers")
-- [ ] **ERRP-04**: Errors can be grouped by function selector within a contract
-- [ ] **ERRP-05**: Bulk retry endpoint re-parses all TXs matching a contract_address + function_selector filter
-- [ ] **ERRP-06**: Expanded error detail shows transfer summary, event summary, and parsers attempted
-- [ ] **ERRP-07**: GenericEVMParser ERC20 counterpart uses actual counterpart address instead of hardcoded "unknown"
+- [ ] **BCSV-01**: Spot trades parsed — Transaction Buy/Spend/Fee grouped by timestamp into SWAP journal entries
+- [ ] **BCSV-02**: Spot sells parsed — Transaction Sold/Revenue/Fee grouped into SWAP journal entries
+- [ ] **BCSV-03**: Binance Convert parsed — paired buy/sell entries at same timestamp into SWAP entries
+- [ ] **BCSV-04**: Deposit and Withdraw parsed into TRANSFER journal entries
+- [ ] **BCSV-05**: P2P Trading parsed as DEPOSIT (fiat→crypto acquire)
+- [ ] **BCSV-06**: Internal transfers parsed — Spot↔Funding, Spot↔Futures, Spot↔Margin, Spot↔Options as internal TRANSFER (no tax event)
+- [ ] **BCSV-07**: Simple Earn Flexible/Locked Subscription and Redemption parsed as DEPOSIT/WITHDRAWAL to earn account
+- [ ] **BCSV-08**: Simple Earn Interest and Locked Rewards parsed as INCOME journal entries
+- [ ] **BCSV-09**: Futures Fee and Funding Fee parsed as EXPENSE journal entries
+- [ ] **BCSV-10**: Futures Realized PnL parsed as INCOME or EXPENSE based on sign
+- [ ] **BCSV-11**: Isolated Margin Loan parsed as BORROW, Forced Repayment as REPAY
+- [ ] **BCSV-12**: Cross Margin Liquidation (Small Assets Takeover) parsed correctly
+- [ ] **BCSV-13**: Flexible Loan — Collateral Transfer, Lending, Repayment parsed as DEPOSIT/BORROW/REPAY
+- [ ] **BCSV-14**: Special tokens — RWUSD Subscription/Distribution/Redemption, BFUSD Subscription/Reward, WBETH Staking parsed correctly
+- [ ] **BCSV-15**: Cashback Voucher parsed as INCOME
+- [ ] **BCSV-16**: All journal entries from CSV import are balanced (splits sum to 0 per entry)
+- [ ] **BCSV-17**: CSV rows that fail to parse are recorded with error details for review
 
-### Morpho Protocol Parser
+### Import UI
 
-- [ ] **MRPH-01**: MorphoBlueParser handles supply and withdraw operations with correct journal entries
-- [ ] **MRPH-02**: MorphoBlueParser handles borrow and repay operations with correct journal entries
-- [ ] **MRPH-03**: MorphoBlueParser handles supplyCollateral and withdrawCollateral operations
-- [ ] **MRPH-04**: MetaMorpho vault parser handles ERC-4626 deposit/withdraw
-- [ ] **MRPH-05**: MORPHO added to Protocol enum
-- [ ] **MRPH-06**: Morpho contract addresses registered in addresses.py (Ethereum mainnet)
-- [ ] **MRPH-07**: Real TX test fixtures for Morpho Blue operations
-
-### Lido Protocol Parser
-
-- [ ] **LIDO-01**: LidoParser handles ETH staking via submit() → stETH
-- [ ] **LIDO-02**: LidoParser handles wstETH wrap/unwrap (or verify GenericSwapParser handles it correctly)
-- [ ] **LIDO-03**: LIDO added to Protocol enum
-- [ ] **LIDO-04**: Lido contract addresses registered in addresses.py (Ethereum + L2s)
-- [ ] **LIDO-05**: Real TX test fixtures for Lido staking and wstETH operations
-
-### Multi-Chain Support
-
-- [ ] **MCHN-01**: Arbitrum TX loading works via existing Etherscan v2 client (integration tested with real TXs)
-- [ ] **MCHN-02**: Polygon TX loading works via existing Etherscan v2 client (integration tested with real TXs)
-- [ ] **MCHN-03**: Arbitrum gas fee calculation is correct (including L1 data posting fee)
-- [ ] **MCHN-04**: Polygon gas fee calculation is correct (MATIC/POL symbol verified)
-- [ ] **MCHN-05**: Existing protocol parsers (Aave V3, Uniswap V3) work on Arbitrum and Polygon
-- [ ] **MCHN-06**: Canonical token mapping (TokenRegistry) maps (chain, token_address) → canonical_symbol for cross-chain FIFO correctness
-
-### Pendle Protocol Parser
-
-- [ ] **PNDL-01**: PendleParser handles router swaps (PT↔token, YT↔token) with correct journal entries
-- [ ] **PNDL-02**: PendleParser handles SY mint/redeem (standardized yield wrapping)
-- [ ] **PNDL-03**: PendleParser handles YT yield claiming as income
-- [ ] **PNDL-04**: PT/YT token identification registry maps Pendle token addresses to underlying symbols for pricing
-- [ ] **PNDL-05**: PENDLE added to Protocol enum
-- [ ] **PNDL-06**: Pendle contract addresses registered in addresses.py
-- [ ] **PNDL-07**: Real TX test fixtures for Pendle operations
-
-### Dashboard Polish
-
-- [ ] **DASH-01**: Missing parser detection heatmap shows ranked view of unparsed contracts by TX count
-- [ ] **DASH-02**: Parser coverage breakdown by protocol in Parser Debug stats
-- [ ] **DASH-03**: Chain-specific block explorer links in TX detail view (Arbiscan, Polygonscan)
+- [ ] **IMUI-01**: Upload page shows import history table (filename, date, rows, parsed, errors)
+- [ ] **IMUI-02**: Upload triggers async parsing with progress indicator
+- [ ] **IMUI-03**: After import, show summary: total rows, grouped operations, success count, error count
+- [ ] **IMUI-04**: Failed rows are viewable with error message and raw CSV data
 
 ## v2 Requirements
 
 Deferred to future milestone. Tracked but not in current roadmap.
 
-### Lido Extended
+### Multi-Exchange CSV
 
-- **LIDO-V2-01**: stETH rebase yield tracking (detect balance changes from rebasing, record as income)
-- **LIDO-V2-02**: Lido withdrawal queue parser (requestWithdrawals, claimWithdrawals)
-- **LIDO-V2-03**: wstETH token mapping on L2s (Arbitrum/Polygon bridged addresses)
+- **MEXC-01**: OKX CSV import parser
+- **MEXC-02**: Bybit CSV import parser
+- **MEXC-03**: Generic CSV template for other exchanges
 
-### Morpho Extended
+### Auth & Permissions
 
-- **MRPH-V2-01**: Morpho bundler v2/v3 multicall decoding
-- **MRPH-V2-02**: Morpho MORPHO token rewards claiming parser
+- **AUTH-01**: User model with email/password login
+- **AUTH-02**: Role-based access (Admin, Accountant, Viewer)
+- **AUTH-03**: Entity-user assignment (which users can see which entities)
+- **AUTH-04**: JWT authentication middleware
 
-### Pendle Extended
+### Advanced Entity
 
-- **PNDL-V2-01**: Pendle LP add/remove liquidity operations
-- **PNDL-V2-02**: Pendle yield decomposition (PT vs YT tax treatment)
-- **PNDL-V2-03**: PT maturity tracking and redemption accounting
-
-### Advanced Diagnostics
-
-- **DIAG-V2-01**: Live parse comparison mode (run multiple parsers, compare results side-by-side)
-- **DIAG-V2-02**: Suggested parser for unknown contracts based on transfer pattern analysis
-- **DIAG-V2-03**: Full 4-byte function selector dictionary (50K+ entries from 4byte.directory)
-
-### Multi-Chain Extended
-
-- **MCHN-V2-01**: Cross-chain position reconciliation (bridge TX detection)
-- **MCHN-V2-02**: BSC chain support
-- **MCHN-V2-03**: Base chain support
+- **AENT-01**: Entity settings (tax year, reporting currency, FIFO method config)
+- **AENT-02**: Entity audit log (who changed what, when)
+- **AENT-03**: Entity export/import (backup and restore)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Auto-generate parsers from ABI | ABIs show function signatures, not accounting semantics. Would produce silently wrong journal entries. |
-| Real-time parse-on-ingest | Parsing needs all related data loaded first (internal TXs, ERC20 transfers). Two-phase approach is correct. |
-| AI-powered TX classification | LLMs hallucinate accounting entries. A wrong journal entry is worse than no entry. |
-| stETH rebase from genesis | Historical backfill requires thousands of snapshots. Only track from wallet addition. |
-| Per-chain separate parser registries | Most protocols deploy identical contracts across chains. One parser class, chain-specific addresses. |
-| Mobile app | Web-first local tool. |
-| Multi-user auth | Single-user local tool. |
+| End-user authentication / login | Admin-only tool for now, auth layer added in future milestone |
+| Multi-user permissions | Single admin manages all entities, no user isolation needed yet |
+| OKX/Bybit CSV import | Binance first, other exchanges in future milestone |
+| Binance API live sync for CEX | CSV import covers the use case, API sync is nice-to-have |
+| Real-time import progress via WebSocket | Simple polling/refresh is sufficient for local tool |
+| CSV format auto-detection | Require user to specify exchange (Binance), auto-detect later |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PFND-01 | Phase 1 | Pending |
-| PFND-02 | Phase 1 | Pending |
-| PFND-03 | Phase 1 | Pending |
-| PFND-04 | Phase 1 | Pending |
-| PFND-05 | Phase 1 | Pending |
-| DIAG-01 | Phase 1 | Pending |
-| DIAG-02 | Phase 1 | Pending |
-| DIAG-03 | Phase 1 | Pending |
-| DIAG-04 | Phase 1 | Pending |
-| DIAG-05 | Phase 1 | Pending |
-| DIAG-06 | Phase 2 | Pending |
-| DIAG-07 | Phase 2 | Pending |
-| ERRP-01 | Phase 2 | Pending |
-| ERRP-02 | Phase 2 | Pending |
-| ERRP-03 | Phase 2 | Pending |
-| ERRP-04 | Phase 2 | Pending |
-| ERRP-05 | Phase 2 | Pending |
-| ERRP-06 | Phase 2 | Pending |
-| ERRP-07 | Phase 2 | Pending |
-| MRPH-01 | Phase 3 | Pending |
-| MRPH-02 | Phase 3 | Pending |
-| MRPH-03 | Phase 3 | Pending |
-| MRPH-04 | Phase 3 | Pending |
-| MRPH-05 | Phase 3 | Pending |
-| MRPH-06 | Phase 3 | Pending |
-| MRPH-07 | Phase 3 | Pending |
-| LIDO-01 | Phase 4 | Pending |
-| LIDO-02 | Phase 4 | Pending |
-| LIDO-03 | Phase 4 | Pending |
-| LIDO-04 | Phase 4 | Pending |
-| LIDO-05 | Phase 4 | Pending |
-| MCHN-01 | Phase 4 | Pending |
-| MCHN-02 | Phase 4 | Pending |
-| MCHN-03 | Phase 4 | Pending |
-| MCHN-04 | Phase 4 | Pending |
-| MCHN-05 | Phase 4 | Pending |
-| MCHN-06 | Phase 4 | Pending |
-| PNDL-01 | Phase 5 | Pending |
-| PNDL-02 | Phase 5 | Pending |
-| PNDL-03 | Phase 5 | Pending |
-| PNDL-04 | Phase 5 | Pending |
-| PNDL-05 | Phase 5 | Pending |
-| PNDL-06 | Phase 5 | Pending |
-| PNDL-07 | Phase 5 | Pending |
-| DASH-01 | Phase 6 | Pending |
-| DASH-02 | Phase 6 | Pending |
-| DASH-03 | Phase 6 | Pending |
+| ENTY-01 | TBD | Pending |
+| ENTY-02 | TBD | Pending |
+| ENTY-03 | TBD | Pending |
+| ENTY-04 | TBD | Pending |
+| ENTY-05 | TBD | Pending |
+| ENTY-06 | TBD | Pending |
+| ENTY-07 | TBD | Pending |
+| CIMP-01 | TBD | Pending |
+| CIMP-02 | TBD | Pending |
+| CIMP-03 | TBD | Pending |
+| CIMP-04 | TBD | Pending |
+| CIMP-05 | TBD | Pending |
+| CIMP-06 | TBD | Pending |
+| BCSV-01 | TBD | Pending |
+| BCSV-02 | TBD | Pending |
+| BCSV-03 | TBD | Pending |
+| BCSV-04 | TBD | Pending |
+| BCSV-05 | TBD | Pending |
+| BCSV-06 | TBD | Pending |
+| BCSV-07 | TBD | Pending |
+| BCSV-08 | TBD | Pending |
+| BCSV-09 | TBD | Pending |
+| BCSV-10 | TBD | Pending |
+| BCSV-11 | TBD | Pending |
+| BCSV-12 | TBD | Pending |
+| BCSV-13 | TBD | Pending |
+| BCSV-14 | TBD | Pending |
+| BCSV-15 | TBD | Pending |
+| BCSV-16 | TBD | Pending |
+| BCSV-17 | TBD | Pending |
+| IMUI-01 | TBD | Pending |
+| IMUI-02 | TBD | Pending |
+| IMUI-03 | TBD | Pending |
+| IMUI-04 | TBD | Pending |
 
 **Coverage:**
-- v1 requirements: 45 total
-- Mapped to phases: 45
-- Unmapped: 0
+- v1 requirements: 28 total
+- Mapped to phases: 0 (awaiting roadmap)
+- Unmapped: 28
 
 ---
 *Requirements defined: 2026-02-18*
