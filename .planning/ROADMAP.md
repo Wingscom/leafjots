@@ -1,129 +1,128 @@
-# Roadmap: CryptoTax Vietnam -- Milestone v2.0
+# Roadmap: CryptoTax Vietnam
 
-## Overview
+## Milestones
 
-Milestone v2.0 transforms CryptoTax from a working Ethereum-only parser into a diagnostic-rich, multi-protocol, multi-chain platform. The work follows a deliberate sequence: fix the parser foundation and build diagnostic observability first (Phases 1-2), then leverage that tooling to build three new protocol parsers (Morpho, Lido, Pendle) in decreasing order of confidence (Phases 3-5), with multi-chain verification running alongside Lido where the infrastructure overlap is natural (Phase 4). Dashboard polish caps the milestone (Phase 6). Every phase delivers observable capability -- no horizontal slicing.
+- **v1.0 Full Platform** - Phases 1-9 (shipped)
+- **v2.0 Parser Diagnostics & Multi-Protocol** - Phases 1-6 (shipped)
+- **v3.0 Multi-Entity + CEX CSV Import** - Phases 7-11 (in progress)
 
 ## Phases
 
+<details>
+<summary>v2.0 Parser Diagnostics & Multi-Protocol (Phases 1-6) - SHIPPED 2026-02-18</summary>
+
+- [x] **Phase 1: Parser Foundation & Diagnostics Infrastructure** - ParseResult dataclass, diagnostic_data column, wrap handler
+- [x] **Phase 2: Diagnostic UI & Error Grouping** - Error page fix, summary bar, diagnostic panel, bulk retry
+- [x] **Phase 3: Morpho Blue Parser** - MorphoBlueParser + MetaMorphoVaultParser
+- [x] **Phase 4: Lido wstETH & Multi-Chain Verification** - LidoParser (Lido done, multi-chain deferred)
+- [x] **Phase 5: Pendle Parser** - PendleParser (swaps/SY/YT yield)
+- [x] **Phase 6: Dashboard Polish & Extended Features** - Protocol coverage badges, explorer links
+
+</details>
+
+### v3.0 Multi-Entity + CEX CSV Import
+
+**Milestone Goal:** Transform from single-entity tool into multi-client platform with Binance CSV import. Each client (fund/individual) has isolated wallets, transactions, journal entries, and tax reports.
+
 **Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+- Integer phases (7, 8, 9, 10, 11): Planned milestone work
+- Decimal phases (e.g., 8.1): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Parser Foundation & Diagnostics Infrastructure** - Fix ENTRY_TYPE bug, introduce ParseResult dataclass, DiagnosticCollector, centralized addresses, internal TX loading, wrap handler
-- [ ] **Phase 2: Diagnostic UI & Error Grouping** - Bookkeeper diagnostic integration, error grouping API, enriched Error page, function selector decoding
-- [ ] **Phase 3: Morpho Blue Parser** - MorphoBlueParser + MetaMorpho vault parser with real TX test fixtures
-- [ ] **Phase 4: Lido wstETH & Multi-Chain Verification** - LidoParser, Arbitrum/Polygon integration testing, TokenRegistry for cross-chain FIFO
-- [ ] **Phase 5: Pendle Parser** - PendleParser for router swaps, SY mint/redeem, YT yield claiming, PT/YT token identification
-- [ ] **Phase 6: Dashboard Polish & Extended Features** - Missing parser heatmap, coverage stats by protocol, chain-specific explorer links
+- [ ] **Phase 7: Entity Management** - Admin can create/manage entities and all pages scope data by selected entity
+- [ ] **Phase 8: CEX Import Infrastructure** - Database models, upload API, and import history for CSV imports
+- [ ] **Phase 9: Binance CSV Parser -- Core Operations** - Spot trades, converts, deposits, withdrawals, P2P, internal transfers
+- [ ] **Phase 10: Binance CSV Parser -- Earn, Futures, Margin & Specials** - Earn products, futures PnL/fees, margin loans, flexible loans, special tokens
+- [ ] **Phase 11: Import UI Polish** - Async parsing progress, import summary, error detail view
 
 ## Phase Details
 
-### Phase 1: Parser Foundation & Diagnostics Infrastructure
-**Goal**: Parsers produce structured results without mutable state bugs, and every parse failure captures rich diagnostic context (contract, function, transfers, events, parsers tried)
-**Depends on**: Nothing (first phase)
-**Requirements**: PFND-01, PFND-02, PFND-03, PFND-04, PFND-05, DIAG-01, DIAG-02, DIAG-03, DIAG-04, DIAG-05
+### Phase 7: Entity Management
+**Goal**: Admin can create and manage multiple client entities, and every page in the application shows data scoped to the selected entity
+**Depends on**: v2.0 complete (existing entity model, repos with entity_id support)
+**Requirements**: ENTY-01, ENTY-02, ENTY-03, ENTY-04, ENTY-05, ENTY-06, ENTY-07
 **Success Criteria** (what must be TRUE):
-  1. All existing parsers return a ParseResult dataclass instead of mutating self.ENTRY_TYPE -- running the full test suite confirms no ENTRY_TYPE class variable mutation
-  2. When a TX fails to parse, the resulting ParseErrorRecord contains the contract address, function selector, detected transfers, detected events, and list of parsers attempted with decline reasons
-  3. Internal transactions (native ETH from contract calls) are loaded during TX sync and visible in the transaction detail view
-  4. Protocol contract addresses for all supported protocols are defined in a single addresses.py file and no parser file contains hardcoded address dictionaries
-  5. A reusable wrap/unwrap handler exists that can produce correct journal entries for any token wrapping pattern (tested with at least one wrapping scenario)
+  1. Admin can create a new entity with a name and base currency, and it appears in the entity list with its wallet count
+  2. A global entity selector dropdown in the UI header persists the selected entity across all page navigations
+  3. All API endpoints accept entity context (header or query parameter) and return only data belonging to that entity -- no more hardcoded get_default()
+  4. Switching entities in the dropdown causes Wallets, Transactions, Journal, Errors, Tax, Reports, and Dashboard pages to show only that entity's data
+  5. Admin can rename or soft-delete an entity, and soft-deleted entities no longer appear in the selector
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 07-01: TBD
+- [ ] 07-02: TBD
 
-### Phase 2: Diagnostic UI & Error Grouping
-**Goal**: Developers can see exactly why any TX failed to parse, group errors by contract/function to prioritize parser work, and bulk-retry after fixes
-**Depends on**: Phase 1
-**Requirements**: DIAG-06, DIAG-07, ERRP-01, ERRP-02, ERRP-03, ERRP-04, ERRP-05, ERRP-06, ERRP-07
+### Phase 8: CEX Import Infrastructure
+**Goal**: The system can receive a CSV file upload, store it with full audit trail, and display import history -- ready for parsers to process
+**Depends on**: Phase 7 (entity scoping -- imports belong to an entity)
+**Requirements**: CIMP-01, CIMP-02, CIMP-03, CIMP-04, CIMP-05, CIMP-06, IMUI-01
 **Success Criteria** (what must be TRUE):
-  1. The Errors page loads without crashing and displays error summary counts (by type, resolved, unresolved)
-  2. Errors can be grouped by contract address, revealing which contracts need parsers (e.g., "500 errors" becomes "3 contracts need parsers")
-  3. Drilling into a contract group shows errors grouped by function selector, with decoded function names (e.g., "0x617ba037 -> supply()")
-  4. Expanding a single error shows transfer summary, event summary, and the list of parsers that attempted and declined with reasons
-  5. Bulk retry re-parses all TXs matching a contract+function filter, and re-parsed TXs move out of the error list if successful
+  1. CsvImport and CsvImportRow tables exist in the database (via Alembic migration) storing import metadata and raw CSV rows
+  2. POST /api/imports/upload accepts a CSV file with entity_id, creates an import record, and stores every row from the file
+  3. GET /api/imports returns import history for the selected entity showing filename, upload date, row count, and status
+  4. The Import/Upload page in the UI lets admin select an entity, upload a CSV file, and see the import appear in the history table
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 08-01: TBD
+- [ ] 08-02: TBD
 
-### Phase 3: Morpho Blue Parser
-**Goal**: Morpho Blue lending and MetaMorpho vault transactions produce correct double-entry journal entries
-**Depends on**: Phase 1 (addresses.py, ParseResult pattern)
-**Requirements**: MRPH-01, MRPH-02, MRPH-03, MRPH-04, MRPH-05, MRPH-06, MRPH-07
+### Phase 9: Binance CSV Parser -- Core Operations
+**Goal**: The most common Binance operations (spot trading, converts, deposits/withdrawals, P2P, internal transfers) are parsed into balanced journal entries
+**Depends on**: Phase 8 (import infrastructure to store CSV rows and link parsed entries)
+**Requirements**: BCSV-01, BCSV-02, BCSV-03, BCSV-04, BCSV-05, BCSV-06, BCSV-16, BCSV-17
 **Success Criteria** (what must be TRUE):
-  1. A Morpho Blue supply TX produces journal entries that move tokens from the user's asset account to a Morpho protocol account, and the entry sums to zero
-  2. Morpho Blue borrow, repay, supplyCollateral, and withdrawCollateral each produce correctly balanced journal entries following the same accounting patterns as the existing Aave V3 parser
-  3. A MetaMorpho vault deposit/withdraw (ERC-4626 pattern) produces correct journal entries distinguishing vault shares from underlying tokens
-  4. MORPHO appears in the Protocol enum and Morpho contract addresses are registered in addresses.py
-  5. Each Morpho operation type has at least one real TX test fixture that passes end-to-end (load TX, parse, verify journal balance)
+  1. Spot buy (Transaction Buy/Spend/Fee) and spot sell (Transaction Sold/Revenue/Fee) rows grouped by timestamp produce balanced SWAP journal entries with fees as expense
+  2. Binance Convert paired rows, Deposit, Withdraw, and P2P Trading rows each produce correctly typed and balanced journal entries
+  3. Internal transfers between Spot, Funding, Futures, Margin, and Options accounts are recorded as internal TRANSFER entries (no tax event)
+  4. Every journal entry produced by the parser has splits that sum to zero per entry (balance validation)
+  5. CSV rows that fail to parse are recorded in the import with error details (operation type, raw data, error message) rather than silently dropped
 **Plans**: TBD
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 09-01: TBD
+- [ ] 09-02: TBD
 
-### Phase 4: Lido wstETH & Multi-Chain Verification
-**Goal**: Lido staking/wrapping transactions parse correctly, and existing parsers work on Arbitrum and Polygon with correct gas fees and cross-chain FIFO
-**Depends on**: Phase 1 (addresses.py, wrap handler), Phase 3 (validates multi-protocol pattern)
-**Requirements**: LIDO-01, LIDO-02, LIDO-03, LIDO-04, LIDO-05, MCHN-01, MCHN-02, MCHN-03, MCHN-04, MCHN-05, MCHN-06
+### Phase 10: Binance CSV Parser -- Earn, Futures, Margin & Specials
+**Goal**: All remaining Binance operation types (earn products, futures, margin, loans, special tokens) are parsed into balanced journal entries, achieving full coverage of the 48 known operation types
+**Depends on**: Phase 9 (core parser framework and grouping logic established)
+**Requirements**: BCSV-07, BCSV-08, BCSV-09, BCSV-10, BCSV-11, BCSV-12, BCSV-13, BCSV-14, BCSV-15
 **Success Criteria** (what must be TRUE):
-  1. An ETH staking TX via Lido submit() produces a journal entry converting ETH to stETH in the user's asset accounts
-  2. wstETH wrap/unwrap produces correct journal entries (either via LidoParser or verified GenericSwapParser with protocol attribution)
-  3. Arbitrum TXs load via Etherscan v2 and parse with existing parsers (Aave V3, Uniswap V3), with L1 data posting fee included in gas calculation
-  4. Polygon TXs load via Etherscan v2 and parse with existing parsers, with correct gas token symbol (MATIC or POL)
-  5. The TokenRegistry maps (chain, token_address) to canonical_symbol so that USDC on Ethereum, Arbitrum, and Polygon all resolve to the same symbol for FIFO lot matching
+  1. Simple Earn subscriptions/redemptions produce DEPOSIT/WITHDRAWAL entries to earn accounts, and interest/rewards produce INCOME entries
+  2. Futures fees and funding fees produce EXPENSE entries, and Futures Realized PnL produces INCOME or EXPENSE based on sign
+  3. Margin loan, forced repayment, and cross margin liquidation produce correctly balanced BORROW/REPAY journal entries
+  4. Flexible Loan operations (collateral transfer, lending, repayment) produce correct DEPOSIT/BORROW/REPAY entries
+  5. Special token operations (RWUSD, BFUSD, WBETH) and Cashback Voucher each produce correctly typed and balanced journal entries
 **Plans**: TBD
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 10-01: TBD
+- [ ] 10-02: TBD
 
-### Phase 5: Pendle Parser
-**Goal**: Pendle router swaps, SY operations, and YT yield claiming produce correct journal entries with proper PT/YT token identification
-**Depends on**: Phase 1 (addresses.py, ParseResult), Phase 2 (diagnostics for debugging novel parser)
-**Requirements**: PNDL-01, PNDL-02, PNDL-03, PNDL-04, PNDL-05, PNDL-06, PNDL-07
+### Phase 11: Import UI Polish
+**Goal**: The import experience shows real-time progress, clear summaries, and actionable error details so the admin can confidently import and verify CSV data
+**Depends on**: Phase 10 (all parsers complete so progress and summaries are meaningful)
+**Requirements**: IMUI-02, IMUI-03, IMUI-04
 **Success Criteria** (what must be TRUE):
-  1. A Pendle router swap (PT or YT traded for underlying token) produces a correctly balanced journal entry with the Pendle protocol identified
-  2. SY mint (deposit underlying to get SY token) and SY redeem (burn SY to get underlying) produce correct wrap/unwrap-style journal entries
-  3. YT yield claiming produces a journal entry recognizing the claimed amount as income
-  4. PT and YT token addresses are mapped to their underlying symbols so the price service can value them correctly
-  5. Each Pendle operation type has at least one real TX test fixture that passes end-to-end
+  1. After clicking upload, a progress indicator shows parsing status (not just a spinner -- shows row count or percentage)
+  2. After import completes, a summary screen shows total rows processed, grouped operation counts, success count, and error count
+  3. Failed rows are viewable in a list showing the raw CSV data and the specific error message for each failure
 **Plans**: TBD
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
-
-### Phase 6: Dashboard Polish & Extended Features
-**Goal**: The dashboard surfaces parser coverage gaps and supports multi-chain navigation
-**Depends on**: Phase 2 (error data), Phase 4 (multi-chain data)
-**Requirements**: DASH-01, DASH-02, DASH-03
-**Success Criteria** (what must be TRUE):
-  1. A heatmap/ranked view on the Parser Debug page shows unparsed contracts ordered by TX count, making it obvious which contract to build a parser for next
-  2. Parser Debug stats break down parsed TX counts by protocol (Generic, Aave, Uniswap, Morpho, Lido, Pendle, etc.)
-  3. TX detail view shows chain-appropriate block explorer links (Etherscan for Ethereum, Arbiscan for Arbitrum, Polygonscan for Polygon)
-**Plans**: TBD
-
-Plans:
-- [ ] 06-01: TBD
+- [ ] 11-01: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
+Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Parser Foundation & Diagnostics Infrastructure | 0/0 | Not started | - |
-| 2. Diagnostic UI & Error Grouping | 0/0 | Not started | - |
-| 3. Morpho Blue Parser | 0/0 | Not started | - |
-| 4. Lido wstETH & Multi-Chain Verification | 0/0 | Not started | - |
-| 5. Pendle Parser | 0/0 | Not started | - |
-| 6. Dashboard Polish & Extended Features | 0/0 | Not started | - |
+| 7. Entity Management | 0/? | Not started | - |
+| 8. CEX Import Infrastructure | 0/? | Not started | - |
+| 9. Binance CSV Parser -- Core Operations | 0/? | Not started | - |
+| 10. Binance CSV Parser -- Earn, Futures, Margin & Specials | 0/? | Not started | - |
+| 11. Import UI Polish | 0/? | Not started | - |
