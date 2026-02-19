@@ -1,0 +1,34 @@
+{
+  "hash": "0xaave_supply_1234567890abcdef1234567890abcdef1234567890abcdef12345678",
+  "blockNumber": "18600000",
+  "timeStamp": "1700100000",
+  "from": "0x1111111111111111111111111111111111111111",
+  "to": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+  "value": "0",
+  "gasUsed": "250000",
+  "gasPrice": "25000000000",
+  "isError": "0",
+  "txreceipt_status": "1",
+  "contractAddress": "",
+  "input": "0x617ba037000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000000000000000000003b9aca000000000000000000000000001111111111111111111111111111111111111111",
+  "functionName": "supply(address,uint256,address,uint16)",
+  "chain": "ethereum",
+  "token_transfers": [
+    {
+      "contractAddress": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "tokenSymbol": "USDC",
+      "tokenDecimal": "6",
+      "from": "0x1111111111111111111111111111111111111111",
+      "to": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+      "value": "1000000000"
+    },
+    {
+      "contractAddress": "0xbcca60bb61934080951369a648fb03df4f96263c",
+      "tokenSymbol": "aUSDC",
+      "tokenDecimal": "6",
+      "from": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+      "to": "0x1111111111111111111111111111111111111111",
+      "value": "1000000000"
+    }
+  ]
+}

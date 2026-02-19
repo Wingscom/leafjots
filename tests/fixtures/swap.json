@@ -1,0 +1,15 @@
+{
+  "hash": "0xswap123456789012345678901234567890123456789012345678901234swap",
+  "blockNumber": "18500100",
+  "timeStamp": "1700001200",
+  "from": "0x1111111111111111111111111111111111111111",
+  "to": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+  "value": "500000000000000000",
+  "gasUsed": "150000",
+  "gasPrice": "25000000000",
+  "isError": "0",
+  "txreceipt_status": "1",
+  "contractAddress": "",
+  "input": "0x38ed1739",
+  "functionName": "swapExactTokensForTokens(uint256,uint256,address[],address,uint256)"
+}

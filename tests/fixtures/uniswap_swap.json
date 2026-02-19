@@ -1,0 +1,26 @@
+{
+  "hash": "0xuni_swap_1234567890abcdef1234567890abcdef1234567890abcdef12345678ab",
+  "blockNumber": "18600100",
+  "timeStamp": "1700101200",
+  "from": "0x1111111111111111111111111111111111111111",
+  "to": "0xe592427a0aece92de3edee1f18e0157c05861564",
+  "value": "1000000000000000000",
+  "gasUsed": "180000",
+  "gasPrice": "20000000000",
+  "isError": "0",
+  "txreceipt_status": "1",
+  "contractAddress": "",
+  "input": "0x414bf389000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+  "functionName": "exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))",
+  "chain": "ethereum",
+  "token_transfers": [
+    {
+      "contractAddress": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "tokenSymbol": "USDC",
+      "tokenDecimal": "6",
+      "from": "0xe592427a0aece92de3edee1f18e0157c05861564",
+      "to": "0x1111111111111111111111111111111111111111",
+      "value": "2500000000"
+    }
+  ]
+}

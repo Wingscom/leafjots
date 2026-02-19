@@ -1,0 +1,30 @@
+{
+  "name": "leafjots-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3",
+    "react-dom": "^18.3",
+    "react-router-dom": "^6.28",
+    "@tanstack/react-query": "^5.62",
+    "recharts": "^2.14",
+    "lucide-react": "^0.460",
+    "clsx": "^2.1",
+    "tailwind-merge": "^2.6"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3",
+    "@types/react-dom": "^18.3",
+    "@vitejs/plugin-react": "^4.3",
+    "autoprefixer": "^10.4",
+    "postcss": "^8.4",
+    "tailwindcss": "^3.4",
+    "typescript": "^5.7",
+    "vite": "^6.0"
+  }
+}
