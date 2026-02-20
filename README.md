@@ -26,28 +26,43 @@ Automated DeFi accounting platform. Parses on-chain transactions into double-ent
 
 ```bash
 # 1. Clone and install
-git clone <repo-url> && cd leafjots
+git clone https://github.com/Wingscom/leafjots.git && cd leafjots
 pip install -e ".[dev]"
 cd web && npm install && cd ..
 
 # 2. Configure environment
 cp .env.example .env
-# Edit .env — add your ETHERSCAN_API_KEY (required for EVM chains)
+# Edit .env — add your API keys (ETHERSCAN_API_KEY required for EVM chains)
+# Or get the shared .env from team Drive (has all keys pre-filled)
 
-# 3. Start infrastructure
+# 3. Start infrastructure (PostgreSQL:5433, Redis:6380)
 docker compose up -d
 
 # 4. Run database migrations
 alembic upgrade head
 
-# 5. Start backend
+# 5. (Optional) Import shared DB dump — skip if starting fresh
+docker compose exec -T db psql -U postgres -d leafjots < leafjots_dump.sql
+
+# 6. Start backend
 uvicorn src.cryptotax.api.main:app --reload --port 8000
 
-# 6. Start frontend (separate terminal)
+# 7. Start frontend (separate terminal)
 cd web && npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### Team Setup (shared env + data)
+
+Team Drive chứa 2 file cần copy vào project root:
+
+| File | Mô tả |
+|------|--------|
+| `.env` | API keys (Alchemy, Etherscan, CoinGecko, Helius) — thay cho bước 2 |
+| `leafjots_dump.sql` | DB dump có sẵn data mẫu (395 TXs, 478 journal entries) — dùng ở bước 5 |
+
+> **Port note:** LeafJots dùng PostgreSQL port **5433** và Redis port **6380** (không phải default) để tránh conflict với các project khác.
 
 ### First Steps
 
