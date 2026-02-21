@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 
 ## Current Position
 
-Phase: 11 of 11 (Import UI Polish) — ALL PHASES COMPLETE
-Plan: 1 of 1 in current phase
-Status: Milestone v3.0 shipped
-Last activity: 2026-02-19 -- Phase 11 Import UI Polish complete (1/1 plan)
+Phase: 12 of 12 (Management Dashboard & Comprehensive Analytics) — Planned (6 plans, 5 waves)
+Plan: 3 of 6 in current phase
+Status: Executing Phase 12
+Last activity: 2026-02-21 -- Completed 12-03 (Shared Filter & Data Display Components)
 
-Progress: [██████████] 100%
+Progress: [█████░░░░░] 50% (3/6 plans)
 
 ## Overall Project Stats
 
@@ -44,6 +44,7 @@ Progress: [██████████] 100%
 | 9. Binance CSV Parser Core | 1/1 | -- | -- |
 | 10. Binance CSV Extended Ops | 1/1 | -- | -- |
 | 11. Import UI Polish | 1/1 | -- | -- |
+| 12. Management Dashboard | 3/6 | -- | -- |
 
 ## Accumulated Context
 
@@ -70,6 +71,14 @@ Progress: [██████████] 100%
 - SWAP entries don't balance per-symbol (different coins in/out) — correct behavior
 - Admin-only multi-entity (no user auth) -- build data isolation first
 - Import UI auto-parses after upload, shows expandable rows with summary panel and error detail
+- Shared filter components (DateRangePicker, WalletSelector, ChainSelector, etc.) use controlled props pattern
+- FilterBar accepts children for composable filter layouts with reset button
+- DataTable uses TypeScript generics for type-safe sortable columns with custom renderers
+- Pagination component handles ellipsis, edge cases, and "Showing X-Y of Z" display
+
+### Roadmap Evolution
+
+- Phase 12 added: Management Dashboard & Comprehensive Analytics
 
 ### Known Limitations / Concerns
 
@@ -85,6 +94,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-19
-Stopped at: Milestone v3.0 complete
+Last session: 2026-02-21
+Stopped at: Completed 12-03-PLAN.md
 Resume file: None
