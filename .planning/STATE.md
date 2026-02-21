@@ -26,7 +26,7 @@ Progress: [█████░░░░░] 50% (3/6 plans)
 | Backend parsers | 12 |
 | API endpoints | 43+ |
 | Web pages | 11 |
-| Alembic migrations | base + v3_001 |
+| Alembic migrations | base + v3_001 + phase12 |
 
 ## Performance Metrics
 
@@ -75,6 +75,10 @@ Progress: [█████░░░░░] 50% (3/6 plans)
 - FilterBar accepts children for composable filter layouts with reset button
 - DataTable uses TypeScript generics for type-safe sortable columns with custom renderers
 - Pagination component handles ellipsis, edge cases, and "Showing X-Y of Z" display
+- AnalyticsRepo (11 methods) queries journal/split/account/wallet joins with common filter kwargs
+- TaxAnalyticsRepo (8 methods) queries ClosedLotRecord, OpenLotRecord, TaxableTransferRecord
+- TaxableTransferRecord table persisted by TaxEngine alongside closed/open lots
+- TaxableTransfer domain model has value_usd + journal_entry_id for DB persistence
 
 ### Roadmap Evolution
 
@@ -95,5 +99,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-21
-Stopped at: Completed 12-03-PLAN.md
+Stopped at: Completed 12-01-PLAN.md (analytics backend foundation)
 Resume file: None
