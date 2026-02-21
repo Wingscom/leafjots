@@ -143,3 +143,24 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10 -> 11
 | 9. Binance CSV Parser -- Core Operations | 1/1 | Complete | 2026-02-19 |
 | 10. Binance CSV Parser -- Earn, Futures, Margin & Specials | 1/1 | Complete | 2026-02-19 |
 | 11. Import UI Polish | 1/1 | Complete | 2026-02-19 |
+
+### Phase 12: Management Dashboard & Comprehensive Analytics
+
+**Goal:** Comprehensive analytics dashboards with filterable charts, KPI cards, drill-down navigation, and tax analytics — plus filter improvements on all existing pages
+**Depends on:** Phase 11
+**Requirements:** ANAL-01 through ANAL-16
+**Success Criteria** (what must be TRUE):
+  1. Admin can view a management analytics dashboard with KPI cards, cash flow charts, composition donuts, top symbols/protocols, and activity heatmap
+  2. Admin can view a tax analytics dashboard with realized gains charts, holding period distribution, winners/losers, tax breakdown, and unrealized P&L
+  3. All existing pages (Transactions, Journal, Tax, Accounts) have comprehensive filter controls
+  4. Clicking chart elements on analytics pages navigates to Journal page with pre-set filters for drill-down
+  5. Sidebar navigation includes Analytics and Tax Analytics links
+**Plans:** 6 plans
+
+Plans:
+- [ ] 12-01-PLAN.md -- Backend analytics repos + TaxableTransfer persistence (AnalyticsRepo, TaxAnalyticsRepo, TaxableTransferRecord)
+- [ ] 12-02-PLAN.md -- Analytics API router (19 endpoints) + extend existing API filters
+- [ ] 12-03-PLAN.md -- Frontend filter components + DataTable + Pagination
+- [ ] 12-04-PLAN.md -- Recharts chart components + analytics API client + hooks
+- [ ] 12-05-PLAN.md -- Improve existing pages with filters and mini-charts
+- [ ] 12-06-PLAN.md -- Analytics + Tax Analytics pages + AI placeholder + routes
