@@ -14,6 +14,7 @@ from cryptotax.config import settings
 from cryptotax.db.models.capital_gains import ClosedLotRecord, OpenLotRecord
 from cryptotax.db.models.journal import JournalEntry
 from cryptotax.db.models.account import Account
+from cryptotax.db.models.taxable_transfer import TaxableTransferRecord
 from cryptotax.domain.enums.tax import TaxExemptionReason
 from cryptotax.domain.models.tax import TaxableTransfer, TaxSummary
 
@@ -61,7 +62,7 @@ class TaxEngine:
         total_exempt = sum((t.value_vnd for t in taxable_transfers if t.exemption_reason is not None), Decimal(0))
 
         # 5. Persist (delete-then-insert for idempotency)
-        await self._persist_results(entity_id, all_closed, all_open)
+        await self._persist_results(entity_id, all_closed, all_open, taxable_transfers)
 
         return TaxSummary(
             period_start=start,
@@ -166,8 +167,10 @@ class TaxEngine:
                     timestamp=s["timestamp"],
                     symbol=s["symbol"],
                     quantity=abs_qty,
+                    value_usd=value_usd,
                     value_vnd=value_vnd,
                     tax_amount_vnd=tax_amount if exemption is None else Decimal(0),
+                    journal_entry_id=s["journal_entry_id"],
                     exemption_reason=exemption,
                 ))
 
@@ -178,6 +181,7 @@ class TaxEngine:
         entity_id: uuid.UUID,
         closed_lots: list,
         open_lots: list,
+        taxable_transfers: list | None = None,
     ) -> None:
         """Delete old results and insert new ones (idempotent)."""
         await self._session.execute(
@@ -185,6 +189,9 @@ class TaxEngine:
         )
         await self._session.execute(
             delete(OpenLotRecord).where(OpenLotRecord.entity_id == entity_id)
+        )
+        await self._session.execute(
+            delete(TaxableTransferRecord).where(TaxableTransferRecord.entity_id == entity_id)
         )
 
         for cl in closed_lots:
@@ -210,6 +217,19 @@ class TaxEngine:
                 cost_basis_per_unit_usd=ol.cost_basis_per_unit_usd,
                 buy_entry_id=ol.buy_trade.journal_entry_id,
                 buy_timestamp=ol.buy_trade.timestamp,
+            ))
+
+        for tt in (taxable_transfers or []):
+            self._session.add(TaxableTransferRecord(
+                entity_id=entity_id,
+                journal_entry_id=tt.journal_entry_id,
+                symbol=tt.symbol,
+                quantity=tt.quantity,
+                value_usd=tt.value_usd,
+                value_vnd=tt.value_vnd,
+                tax_amount_vnd=tt.tax_amount_vnd,
+                exemption_reason=tt.exemption_reason.value if tt.exemption_reason else None,
+                timestamp=tt.timestamp,
             ))
 
         await self._session.flush()

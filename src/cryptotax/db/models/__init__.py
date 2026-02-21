@@ -12,6 +12,7 @@ from cryptotax.db.models.account import (
 )
 from cryptotax.db.models.capital_gains import ClosedLotRecord, OpenLotRecord
 from cryptotax.db.models.csv_import import CsvImport, CsvImportRow
+from cryptotax.db.models.taxable_transfer import TaxableTransferRecord
 from cryptotax.db.models.entity import Entity
 from cryptotax.db.models.journal import JournalEntry, JournalSplit
 from cryptotax.db.models.parse_error_record import ParseErrorRecord
@@ -41,6 +42,7 @@ __all__ = [
     "ReportRecord",
     "ProtocolAsset",
     "ProtocolDebt",
+    "TaxableTransferRecord",
     "Transaction",
     "Wallet",
     "WalletExpense",

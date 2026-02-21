@@ -50,8 +50,10 @@ class TaxableTransfer(BaseModel):
     timestamp: datetime
     symbol: str
     quantity: Decimal
+    value_usd: Decimal = Decimal(0)
     value_vnd: Decimal
     tax_amount_vnd: Decimal  # value_vnd * 0.001
+    journal_entry_id: uuid.UUID | None = None
     exemption_reason: TaxExemptionReason | None = None  # None = taxable
 
 
