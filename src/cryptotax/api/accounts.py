@@ -36,6 +36,7 @@ async def list_accounts(
         wallet_id=wallet_id,
     )
     balances = await account_repo.get_balances_for_entity(entity.id)
+    balances_usd_vnd = await account_repo.get_balances_usd_vnd_for_entity(entity.id)
 
     return AccountList(
         accounts=[
@@ -49,6 +50,8 @@ async def list_accounts(
                 balance_type=a.balance_type,
                 label=a.label,
                 current_balance=balances.get(a.id, 0),
+                balance_usd=balances_usd_vnd.get(a.id, (0, 0))[0],
+                balance_vnd=balances_usd_vnd.get(a.id, (0, 0))[1],
             )
             for a in accounts
         ]

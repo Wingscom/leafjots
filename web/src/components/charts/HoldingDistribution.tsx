@@ -31,14 +31,14 @@ export function HoldingDistribution({ data, title = 'Holding Period Distribution
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis dataKey="bucket_label" tick={{ fontSize: 11 }} />
+          <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
           <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
           <Tooltip
             formatter={(value: number, name: string) =>
               name === 'count' ? value.toLocaleString('en-US') : `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
             }
           />
-          <Bar dataKey="count" name="Lots" radius={[4, 4, 0, 0]}>
+          <Bar dataKey="lot_count" name="Lots" radius={[4, 4, 0, 0]}>
             {data.map((entry, index) => (
               <Cell
                 key={index}

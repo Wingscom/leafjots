@@ -115,6 +115,9 @@ async def get_overview(
             outflow_vnd=_to_float(r["outflow_vnd"]),
             net_usd=_to_float(r["net_usd"]),
             net_vnd=_to_float(r["net_vnd"]),
+            inflow_qty=_to_float(r.get("inflow_qty", 0)),
+            outflow_qty=_to_float(r.get("outflow_qty", 0)),
+            entry_count=r.get("entry_count", 0),
         )
         for r in cash_flow_data
     ]
@@ -159,6 +162,9 @@ async def get_cash_flow(
             outflow_vnd=_to_float(r["outflow_vnd"]),
             net_usd=_to_float(r["net_usd"]),
             net_vnd=_to_float(r["net_vnd"]),
+            inflow_qty=_to_float(r.get("inflow_qty", 0)),
+            outflow_qty=_to_float(r.get("outflow_qty", 0)),
+            entry_count=r.get("entry_count", 0),
         )
         for r in rows
     ]
@@ -187,6 +193,8 @@ async def get_income_expense(
             income_vnd=_to_float(r["income_vnd"]),
             expense_usd=_to_float(r["expense_usd"]),
             expense_vnd=_to_float(r["expense_vnd"]),
+            income_count=r.get("income_count", 0),
+            expense_count=r.get("expense_count", 0),
         )
         for r in rows
     ]
@@ -245,6 +253,7 @@ async def get_top_symbols(
             inflow_usd=_to_float(r["inflow_usd"]),
             outflow_usd=_to_float(r["outflow_usd"]),
             tx_count=r["entry_count"],
+            total_quantity=_to_float(r.get("total_quantity", 0)),
         )
         for r in rows
     ]

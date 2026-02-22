@@ -17,6 +17,9 @@ class CashFlowPeriod(BaseModel):
     outflow_vnd: float
     net_usd: float
     net_vnd: float
+    inflow_qty: float = 0.0
+    outflow_qty: float = 0.0
+    entry_count: int = 0
 
 
 class KPISummaryResponse(BaseModel):
@@ -38,6 +41,7 @@ class SymbolVolume(BaseModel):
     inflow_usd: float
     outflow_usd: float
     tx_count: int
+    total_quantity: float = 0.0
 
 
 class ProtocolVolume(BaseModel):
@@ -75,6 +79,8 @@ class IncomeExpensePeriod(BaseModel):
     income_vnd: float
     expense_usd: float
     expense_vnd: float
+    income_count: int = 0
+    expense_count: int = 0
 
 
 class BalancePeriod(BaseModel):

@@ -19,6 +19,17 @@ logger = logging.getLogger(__name__)
 # Stay 50 blocks behind chain tip to avoid reorgs
 REORG_SAFETY_MARGIN = 50
 
+# PostgreSQL BIGINT max — ETH values above this (~9.2 ETH in wei) are stored as NULL
+_BIGINT_MAX = 9_223_372_036_854_775_807
+
+
+def _safe_wei(raw_value) -> int | None:
+    """Parse wei value, returning None if zero or exceeds BIGINT range."""
+    v = int(raw_value or 0)
+    if v == 0 or v > _BIGINT_MAX:
+        return None
+    return v
+
 
 class EVMTxLoader(ChainTxLoader):
     def __init__(self, session: AsyncSession, etherscan: EtherscanClient) -> None:
@@ -101,7 +112,7 @@ class EVMTxLoader(ChainTxLoader):
                 timestamp=int(raw.get("timeStamp", 0)) or None,
                 from_addr=raw.get("from", "").lower() or None,
                 to_addr=raw.get("to", "").lower() or None,
-                value_wei=int(raw.get("value", 0)) or None,
+                value_wei=_safe_wei(raw.get("value", 0)),
                 gas_used=int(raw.get("gasUsed", 0)) or None,
                 status=TxStatus.LOADED.value,
                 tx_data=json.dumps(raw),

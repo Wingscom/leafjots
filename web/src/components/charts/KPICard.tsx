@@ -8,12 +8,13 @@ interface ChangeIndicator {
 interface Props {
   label: string
   value: string | number
+  subtitle?: string
   icon?: ReactNode
   change?: ChangeIndicator
   color?: string
 }
 
-export function KPICard({ label, value, icon, change, color = '#3b82f6' }: Props) {
+export function KPICard({ label, value, subtitle, icon, change, color = '#3b82f6' }: Props) {
   const isPositive = change ? change.value >= 0 : null
 
   return (
@@ -30,6 +31,10 @@ export function KPICard({ label, value, icon, change, color = '#3b82f6' }: Props
       <div className="text-2xl font-bold text-gray-900">
         {typeof value === 'number' ? value.toLocaleString('en-US') : value}
       </div>
+
+      {subtitle && (
+        <div className="text-xs text-gray-400">{subtitle}</div>
+      )}
 
       {change && (
         <div

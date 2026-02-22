@@ -16,161 +16,180 @@ export interface AnalyticsFilters {
 }
 
 // ---- General analytics response interfaces ----
+// Aligned with backend Pydantic schemas in schemas/analytics.py
 
 export interface KPISummary {
-  total_entries: number
   total_inflow_usd: number
+  total_inflow_vnd: number
   total_outflow_usd: number
-  net_flow_usd: number
-  total_gas_usd: number
-  unique_symbols: number
+  total_outflow_vnd: number
+  net_usd: number
+  net_vnd: number
+  total_entries: number
+  total_txs: number
+  unique_tokens: number
   unique_protocols: number
-  active_wallets: number
-  avg_tx_value_usd: number
 }
 
 export interface CashFlowPeriod {
   period: string
   inflow_usd: number
+  inflow_vnd: number
   outflow_usd: number
+  outflow_vnd: number
   net_usd: number
+  net_vnd: number
+  inflow_qty: number
+  outflow_qty: number
+  entry_count: number
 }
 
 export interface SymbolVolume {
-  symbol: string
+  symbol: string | null
   volume_usd: number
-  trade_count: number
-  avg_trade_usd: number
+  inflow_usd: number
+  outflow_usd: number
+  tx_count: number
+  total_quantity: number
 }
 
 export interface ProtocolVolume {
-  protocol: string
+  protocol: string | null
   volume_usd: number
-  entry_count: number
-  unique_symbols: number
+  tx_count: number
+  entry_types: string[]
 }
 
 export interface CompositionItem {
   account_type: string
-  account_subtype: string | null
-  symbol: string
+  subtype: string | null
+  symbol: string | null
+  protocol: string | null
+  balance_qty: number
   balance_usd: number
-  balance_quantity: number
+  balance_vnd: number
 }
 
 export interface ActivityDay {
-  date: string
-  entry_count: number
+  date: string | null
+  count: number
   volume_usd: number
 }
 
 export interface EntryTypeBreakdown {
-  entry_type: string
+  entry_type: string | null
   count: number
   volume_usd: number
-  gas_usd: number
 }
 
 export interface IncomeExpensePeriod {
   period: string
   income_usd: number
+  income_vnd: number
   expense_usd: number
-  net_usd: number
+  expense_vnd: number
+  income_count: number
+  expense_count: number
 }
 
 export interface BalancePeriod {
   period: string
   symbol: string
-  balance_quantity: number
-  balance_usd: number
+  period_change: number
+  cumulative_qty: number
+  period_value_usd: number
 }
 
 export interface WalletFlow {
   wallet_id: string
-  wallet_label: string
-  chain: string
+  label: string | null
+  chain: string | null
   inflow_usd: number
   outflow_usd: number
   net_usd: number
+  tx_count: number
 }
 
 export interface ChainFlow {
-  chain: string
+  chain: string | null
   inflow_usd: number
   outflow_usd: number
   net_usd: number
-  entry_count: number
+  tx_count: number
 }
 
 export interface OverviewResponse {
   kpi: KPISummary
-  top_symbols: SymbolVolume[]
-  top_protocols: ProtocolVolume[]
-  recent_activity: ActivityDay[]
+  cash_flow: CashFlowPeriod[]
+  composition: CompositionItem[]
 }
 
 // ---- Tax analytics response interfaces ----
 
 export interface RealizedGainsPeriod {
-  period: string
-  total_gain_usd: number
-  total_loss_usd: number
-  net_gain_usd: number
-  trade_count: number
+  period: string | null
+  gains_usd: number
+  losses_usd: number
+  net_usd: number
+  lot_count: number
 }
 
 export interface GainsBySymbol {
-  symbol: string
-  total_gain_usd: number
-  total_loss_usd: number
-  net_gain_usd: number
+  symbol: string | null
+  gains_usd: number
+  losses_usd: number
+  net_usd: number
   lot_count: number
   avg_holding_days: number
 }
 
 export interface HoldingBucket {
-  bucket_label: string
-  min_days: number
-  max_days: number | null
-  count: number
+  bucket: string
+  lot_count: number
   total_gain_usd: number
+  total_quantity: number
+}
+
+export interface WinnersLosersItem {
+  symbol: string | null
+  net_gain_usd: number
+  lot_count: number
 }
 
 export interface WinnersLosers {
-  winners: GainsBySymbol[]
-  losers: GainsBySymbol[]
+  winners: WinnersLosersItem[]
+  losers: WinnersLosersItem[]
 }
 
 export interface TaxBreakdownPeriod {
-  period: string
+  period: string | null
+  taxable_count: number
+  exempt_count: number
+  total_value_vnd: number
   total_tax_vnd: number
-  exempt_vnd: number
-  taxable_vnd: number
-  transfer_count: number
 }
 
 export interface TaxByCategory {
   category: string
-  total_tax_vnd: number
   transfer_count: number
-  volume_usd: number
+  total_value_vnd: number
+  total_tax_vnd: number
 }
 
 export interface UnrealizedPosition {
-  symbol: string
-  total_quantity: number
+  symbol: string | null
+  remaining_quantity: number
+  cost_basis_per_unit_usd: number
   cost_basis_usd: number
-  current_value_usd: number | null
-  unrealized_gain_usd: number | null
-  lot_count: number
+  buy_timestamp: string | null
 }
 
 export interface CostBasisItem {
-  symbol: string
-  buy_date: string
-  quantity: number
-  cost_basis_per_unit_usd: number
+  symbol: string | null
+  total_quantity: number
   total_cost_usd: number
+  avg_cost_per_unit_usd: number
+  lot_count: number
 }
 
 // ---- Query string builder ----
@@ -238,35 +257,36 @@ export function fetchFlowByChain(filters: AnalyticsFilters = {}, entityId?: stri
 }
 
 // ---- Tax analytics fetch functions ----
+// Note: backend tax endpoints are under /analytics/tax/...
 
 export function fetchGainsOverTime(filters: AnalyticsFilters = {}, entityId?: string | null): Promise<RealizedGainsPeriod[]> {
-  return apiFetch<RealizedGainsPeriod[]>(analyticsPath('gains-over-time', filters, entityId))
+  return apiFetch<RealizedGainsPeriod[]>(analyticsPath('tax/gains-over-time', filters, entityId))
 }
 
 export function fetchGainsBySymbol(filters: AnalyticsFilters = {}, entityId?: string | null): Promise<GainsBySymbol[]> {
-  return apiFetch<GainsBySymbol[]>(analyticsPath('gains-by-symbol', filters, entityId))
+  return apiFetch<GainsBySymbol[]>(analyticsPath('tax/gains-by-symbol', filters, entityId))
 }
 
 export function fetchHoldingDistribution(filters: AnalyticsFilters = {}, entityId?: string | null): Promise<HoldingBucket[]> {
-  return apiFetch<HoldingBucket[]>(analyticsPath('holding-distribution', filters, entityId))
+  return apiFetch<HoldingBucket[]>(analyticsPath('tax/holding-distribution', filters, entityId))
 }
 
 export function fetchWinnersLosers(filters: AnalyticsFilters = {}, entityId?: string | null): Promise<WinnersLosers> {
-  return apiFetch<WinnersLosers>(analyticsPath('winners-losers', filters, entityId))
+  return apiFetch<WinnersLosers>(analyticsPath('tax/winners-losers', filters, entityId))
 }
 
 export function fetchTaxBreakdown(filters: AnalyticsFilters = {}, entityId?: string | null): Promise<TaxBreakdownPeriod[]> {
-  return apiFetch<TaxBreakdownPeriod[]>(analyticsPath('breakdown', filters, entityId))
+  return apiFetch<TaxBreakdownPeriod[]>(analyticsPath('tax/breakdown', filters, entityId))
 }
 
 export function fetchTaxByCategory(filters: AnalyticsFilters = {}, entityId?: string | null): Promise<TaxByCategory[]> {
-  return apiFetch<TaxByCategory[]>(analyticsPath('by-category', filters, entityId))
+  return apiFetch<TaxByCategory[]>(analyticsPath('tax/by-category', filters, entityId))
 }
 
 export function fetchUnrealized(filters: AnalyticsFilters = {}, entityId?: string | null): Promise<UnrealizedPosition[]> {
-  return apiFetch<UnrealizedPosition[]>(analyticsPath('unrealized', filters, entityId))
+  return apiFetch<UnrealizedPosition[]>(analyticsPath('tax/unrealized', filters, entityId))
 }
 
 export function fetchCostBasis(filters: AnalyticsFilters = {}, entityId?: string | null): Promise<CostBasisItem[]> {
-  return apiFetch<CostBasisItem[]>(analyticsPath('cost-basis', filters, entityId))
+  return apiFetch<CostBasisItem[]>(analyticsPath('tax/cost-basis', filters, entityId))
 }

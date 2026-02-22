@@ -54,6 +54,9 @@ reports/
 *.csv
 !tests/fixtures/*.json
 
+# DB dumps
+*.sql
+
 # Claude Code
 .claude/
 

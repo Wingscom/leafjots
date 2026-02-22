@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from cryptotax.config import settings
 from cryptotax.db.models.price_cache import PriceCache
 from cryptotax.infra.price.coingecko import CoinGeckoProvider
+from cryptotax.infra.price.cryptocompare import CryptoCompareProvider
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +22,15 @@ def _round_to_hour(timestamp: int) -> int:
 class PriceService:
     """Price orchestrator: cache lookup → provider fetch → cache store."""
 
-    def __init__(self, session: AsyncSession, coingecko: CoinGeckoProvider | None = None) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        coingecko: CoinGeckoProvider | None = None,
+        cryptocompare: CryptoCompareProvider | None = None,
+    ) -> None:
         self._session = session
         self._coingecko = coingecko
+        self._cryptocompare = cryptocompare
 
     async def get_price_usd(self, symbol: str, timestamp: int) -> Decimal | None:
         """Get USD price for a token at a Unix timestamp. Checks cache first."""
@@ -34,16 +41,23 @@ class PriceService:
         if cached is not None:
             return cached
 
-        # 2. Fetch from provider
-        if self._coingecko is None:
-            return None
+        # 2. Fetch from CoinGecko (primary)
+        price = None
+        source = ""
+        if self._coingecko is not None:
+            price = await self._coingecko.get_price(symbol, hour_ts)
+            source = "coingecko"
 
-        price = await self._coingecko.get_price(symbol, hour_ts)
+        # 3. Fallback to CryptoCompare
+        if price is None and self._cryptocompare is not None:
+            price = await self._cryptocompare.get_price(symbol, hour_ts)
+            source = "cryptocompare"
+
         if price is None:
             return None
 
-        # 3. Store in cache
-        await self._cache_store(symbol.upper(), hour_ts, price, "coingecko")
+        # 4. Store in cache
+        await self._cache_store(symbol.upper(), hour_ts, price, source)
         return price
 
     def get_usd_vnd_rate(self) -> Decimal:
@@ -80,10 +94,11 @@ class PriceService:
         return row
 
     async def _cache_store(self, symbol: str, hour_ts: int, price: Decimal, source: str) -> None:
-        entry = PriceCache(symbol=symbol, timestamp=hour_ts, price_usd=price, source=source)
-        self._session.add(entry)
         try:
-            await self._session.flush()
+            async with self._session.begin_nested():
+                entry = PriceCache(symbol=symbol, timestamp=hour_ts, price_usd=price, source=source)
+                self._session.add(entry)
         except Exception:
-            # Duplicate key — another request cached it first; ignore
-            await self._session.rollback()
+            # Duplicate key — another request cached it first; savepoint rolls back
+            # without affecting the outer transaction (preserves journal writes)
+            pass

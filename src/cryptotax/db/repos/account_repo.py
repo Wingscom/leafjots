@@ -70,3 +70,23 @@ class AccountRepo:
             .group_by(JournalSplit.account_id)
         )
         return {row[0]: row[1] for row in result.all()}
+
+    async def get_balances_usd_vnd_for_entity(
+        self, entity_id: uuid.UUID
+    ) -> dict[uuid.UUID, tuple[Decimal, Decimal]]:
+        """Get current USD and VND balances for all accounts of an entity.
+
+        Returns a dict mapping account_id -> (balance_usd, balance_vnd).
+        """
+        result = await self._session.execute(
+            select(
+                JournalSplit.account_id,
+                func.coalesce(func.sum(JournalSplit.value_usd), 0),
+                func.coalesce(func.sum(JournalSplit.value_vnd), 0),
+            )
+            .join(Account, JournalSplit.account_id == Account.id)
+            .join(Wallet, Account.wallet_id == Wallet.id)
+            .where(Wallet.entity_id == entity_id)
+            .group_by(JournalSplit.account_id)
+        )
+        return {row[0]: (row[1], row[2]) for row in result.all()}

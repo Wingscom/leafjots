@@ -69,3 +69,14 @@ export async function getJournalEntry(id: string): Promise<JournalEntryDetail> {
 export async function listUnbalanced(entityId?: string): Promise<JournalList> {
   return apiFetch<JournalList>(withEntityId('/journal/validation', entityId))
 }
+
+export interface RepriceResult {
+  updated: number
+  still_null: number
+  total_null_before: number
+  unmapped_symbols: string[]
+}
+
+export async function repriceJournal(entityId?: string): Promise<RepriceResult> {
+  return apiFetch<RepriceResult>(withEntityId('/journal/reprice', entityId), { method: 'POST' })
+}

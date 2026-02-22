@@ -40,11 +40,11 @@ export function GainsLossChart({ data, title = 'Realized Gains & Losses' }: Prop
           <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
           <Tooltip formatter={(value: number) => formatUSD(value)} />
           <Legend />
-          <Bar dataKey="total_gain_usd" name="Gains" fill="#22c55e" />
-          <Bar dataKey="total_loss_usd" name="Losses" fill="#ef4444" />
+          <Bar dataKey="gains_usd" name="Gains" fill="#22c55e" />
+          <Bar dataKey="losses_usd" name="Losses" fill="#ef4444" />
           <Line
             type="monotone"
-            dataKey="net_gain_usd"
+            dataKey="net_usd"
             name="Net"
             stroke="#3b82f6"
             strokeWidth={2}

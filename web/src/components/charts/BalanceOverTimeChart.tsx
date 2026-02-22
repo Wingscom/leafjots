@@ -45,7 +45,7 @@ export function BalanceOverTimeChart({ data, title = 'Balance Over Time' }: Prop
   const periodMap: Record<string, Record<string, number>> = {}
   for (const item of data) {
     if (!periodMap[item.period]) periodMap[item.period] = {}
-    periodMap[item.period][item.symbol] = item.balance_usd
+    periodMap[item.period][item.symbol] = item.period_value_usd
   }
   const chartData = Object.entries(periodMap).map(([period, values]) => ({ period, ...values }))
 

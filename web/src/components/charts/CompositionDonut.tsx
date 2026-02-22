@@ -24,6 +24,12 @@ function formatUSD(value: number): string {
   return `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
 }
 
+function formatQty(value: number): string {
+  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}k`
+  return value.toLocaleString('en-US', { maximumFractionDigits: 2 })
+}
+
 export function CompositionDonut({ data, title = 'Portfolio Composition' }: Props) {
   if (!data || data.length === 0) {
     return (
@@ -34,17 +40,38 @@ export function CompositionDonut({ data, title = 'Portfolio Composition' }: Prop
     )
   }
 
+  const hasUSD = data.some((item) => item.balance_usd !== 0)
+  const valueField = hasUSD ? 'balance_usd' : 'balance_qty'
+
   // Aggregate by account_type
   const aggregated: Record<string, number> = {}
   for (const item of data) {
-    const abs = Math.abs(item.balance_usd)
+    const abs = Math.abs(item[valueField])
     aggregated[item.account_type] = (aggregated[item.account_type] ?? 0) + abs
   }
-  const chartData = Object.entries(aggregated).map(([name, value]) => ({ name, value }))
+  const chartData = Object.entries(aggregated)
+    .map(([name, value]) => ({ name, value }))
+    .filter((d) => d.value > 0)
+
+  if (chartData.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">{title}</h3>
+        <div className="flex items-center justify-center h-48 text-gray-400 text-sm">No data available</div>
+      </div>
+    )
+  }
+
+  const tooltipFormatter = hasUSD
+    ? (value: number) => formatUSD(value)
+    : (value: number) => formatQty(value)
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">{title}</h3>
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">
+        {title}
+        {!hasUSD && <span className="text-xs text-gray-400 font-normal ml-2">— no price data, showing quantity</span>}
+      </h3>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie
@@ -64,7 +91,7 @@ export function CompositionDonut({ data, title = 'Portfolio Composition' }: Prop
               />
             ))}
           </Pie>
-          <Tooltip formatter={(value: number) => formatUSD(value)} />
+          <Tooltip formatter={tooltipFormatter} />
           <Legend />
         </PieChart>
       </ResponsiveContainer>

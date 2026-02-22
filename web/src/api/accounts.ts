@@ -10,6 +10,10 @@ export interface Account {
   token_address: string | null
   protocol: string | null
   balance: number
+  /** current_balance from backend, mapped as balance for backwards compat */
+  current_balance?: number
+  balance_usd: number
+  balance_vnd: number
 }
 
 export interface AccountList {
@@ -21,13 +25,11 @@ export interface AccountHistorySplit {
   journal_entry_id: string
   quantity: number
   value_usd: number | null
-  timestamp: string
-  entry_type: string
-  description: string
+  value_vnd: number | null
+  created_at: string
 }
 
 export interface AccountHistory {
-  account: Account
   splits: AccountHistorySplit[]
   total: number
   limit: number

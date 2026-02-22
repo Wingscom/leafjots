@@ -105,11 +105,11 @@ export default function TaxAnalytics() {
   // Compute KPI values from gains-by-symbol data
   const gainsBySymbolData = gainsBySymbolQ.data ?? []
   const totalGains = gainsBySymbolData.reduce(
-    (sum, s) => sum + (s.total_gain_usd > 0 ? s.total_gain_usd : 0),
+    (sum, s) => sum + (s.gains_usd > 0 ? s.gains_usd : 0),
     0
   )
   const totalLosses = gainsBySymbolData.reduce(
-    (sum, s) => sum + (s.total_loss_usd < 0 ? s.total_loss_usd : 0),
+    (sum, s) => sum + (s.losses_usd < 0 ? s.losses_usd : 0),
     0
   )
   const netGain = totalGains + totalLosses
@@ -122,31 +122,31 @@ export default function TaxAnalytics() {
   const gainsBySymbolColumns: Column<GainsBySymbol>[] = [
     { key: 'symbol', header: 'Symbol', sortable: true },
     {
-      key: 'total_gain_usd',
+      key: 'gains_usd',
       header: 'Gains',
       align: 'right',
       sortable: true,
       render: (item) => (
-        <span className="text-green-600">{formatUSD(item.total_gain_usd)}</span>
+        <span className="text-green-600">{formatUSD(item.gains_usd)}</span>
       ),
     },
     {
-      key: 'total_loss_usd',
+      key: 'losses_usd',
       header: 'Losses',
       align: 'right',
       sortable: true,
       render: (item) => (
-        <span className="text-red-500">{formatUSD(item.total_loss_usd)}</span>
+        <span className="text-red-500">{formatUSD(item.losses_usd)}</span>
       ),
     },
     {
-      key: 'net_gain_usd',
+      key: 'net_usd',
       header: 'Net',
       align: 'right',
       sortable: true,
       render: (item) => (
-        <span className={item.net_gain_usd >= 0 ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
-          {item.net_gain_usd >= 0 ? '+' : ''}{formatUSD(item.net_gain_usd)}
+        <span className={item.net_usd >= 0 ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
+          {item.net_usd >= 0 ? '+' : ''}{formatUSD(item.net_usd)}
         </span>
       ),
     },
@@ -176,22 +176,22 @@ export default function TaxAnalytics() {
       ),
     },
     {
-      key: 'taxable_vnd',
-      header: 'Taxable Value',
+      key: 'total_value_vnd',
+      header: 'Total Value',
       align: 'right',
-      render: (item) => formatVND(item.taxable_vnd),
+      render: (item) => formatVND(item.total_value_vnd),
     },
     {
-      key: 'exempt_vnd',
-      header: 'Exempt Value',
+      key: 'taxable_count',
+      header: 'Taxable',
       align: 'right',
-      render: (item) => formatVND(item.exempt_vnd),
+      render: (item) => item.taxable_count.toLocaleString('en-US'),
     },
     {
-      key: 'transfer_count',
-      header: 'Transfers',
+      key: 'exempt_count',
+      header: 'Exempt',
       align: 'right',
-      render: (item) => item.transfer_count.toLocaleString('en-US'),
+      render: (item) => item.exempt_count.toLocaleString('en-US'),
     },
   ]
 
@@ -211,10 +211,10 @@ export default function TaxAnalytics() {
       render: (item) => item.transfer_count.toLocaleString('en-US'),
     },
     {
-      key: 'volume_usd',
-      header: 'Volume (USD)',
+      key: 'total_value_vnd',
+      header: 'Value (VND)',
       align: 'right',
-      render: (item) => formatUSD(item.volume_usd),
+      render: (item) => formatVND(item.total_value_vnd),
     },
   ]
 
@@ -222,59 +222,10 @@ export default function TaxAnalytics() {
   const unrealizedColumns: Column<UnrealizedPosition>[] = [
     { key: 'symbol', header: 'Symbol', sortable: true },
     {
-      key: 'total_quantity',
+      key: 'remaining_quantity',
       header: 'Quantity',
       align: 'right',
-      render: (item) => item.total_quantity.toLocaleString('en-US', { maximumFractionDigits: 6 }),
-    },
-    {
-      key: 'cost_basis_usd',
-      header: 'Cost Basis',
-      align: 'right',
-      sortable: true,
-      render: (item) => formatUSD(item.cost_basis_usd),
-    },
-    {
-      key: 'current_value_usd',
-      header: 'Current Value',
-      align: 'right',
-      render: (item) =>
-        item.current_value_usd != null ? formatUSD(item.current_value_usd) : '—',
-    },
-    {
-      key: 'unrealized_gain_usd',
-      header: 'Unrealized P&L',
-      align: 'right',
-      render: (item) => {
-        if (item.unrealized_gain_usd == null) return '—'
-        return (
-          <span className={item.unrealized_gain_usd >= 0 ? 'text-green-600' : 'text-red-500'}>
-            {item.unrealized_gain_usd >= 0 ? '+' : ''}{formatUSD(item.unrealized_gain_usd)}
-          </span>
-        )
-      },
-    },
-    {
-      key: 'lot_count',
-      header: 'Lots',
-      align: 'right',
-      render: (item) => item.lot_count.toString(),
-    },
-  ]
-
-  // Columns for cost basis table
-  const costBasisColumns: Column<CostBasisItem>[] = [
-    { key: 'symbol', header: 'Symbol', sortable: true },
-    {
-      key: 'buy_date',
-      header: 'Buy Date',
-      render: (item) => item.buy_date.slice(0, 10),
-    },
-    {
-      key: 'quantity',
-      header: 'Quantity',
-      align: 'right',
-      render: (item) => item.quantity.toLocaleString('en-US', { maximumFractionDigits: 6 }),
+      render: (item) => item.remaining_quantity.toLocaleString('en-US', { maximumFractionDigits: 6 }),
     },
     {
       key: 'cost_basis_per_unit_usd',
@@ -283,11 +234,47 @@ export default function TaxAnalytics() {
       render: (item) => formatUSD(item.cost_basis_per_unit_usd),
     },
     {
+      key: 'cost_basis_usd',
+      header: 'Total Cost',
+      align: 'right',
+      sortable: true,
+      render: (item) => formatUSD(item.cost_basis_usd),
+    },
+    {
+      key: 'buy_timestamp',
+      header: 'Buy Date',
+      align: 'right',
+      render: (item) => item.buy_timestamp ? item.buy_timestamp.slice(0, 10) : '—',
+    },
+  ]
+
+  // Columns for cost basis table
+  const costBasisColumns: Column<CostBasisItem>[] = [
+    { key: 'symbol', header: 'Symbol', sortable: true },
+    {
+      key: 'total_quantity',
+      header: 'Quantity',
+      align: 'right',
+      render: (item) => item.total_quantity.toLocaleString('en-US', { maximumFractionDigits: 6 }),
+    },
+    {
+      key: 'avg_cost_per_unit_usd',
+      header: 'Avg Cost/Unit',
+      align: 'right',
+      render: (item) => formatUSD(item.avg_cost_per_unit_usd),
+    },
+    {
       key: 'total_cost_usd',
       header: 'Total Cost',
       align: 'right',
       sortable: true,
       render: (item) => formatUSD(item.total_cost_usd),
+    },
+    {
+      key: 'lot_count',
+      header: 'Lots',
+      align: 'right',
+      render: (item) => item.lot_count.toLocaleString('en-US'),
     },
   ]
 
@@ -376,9 +363,9 @@ export default function TaxAnalytics() {
             <DataTable
               columns={gainsBySymbolColumns}
               data={gainsBySymbolData}
-              rowKey={(item) => item.symbol}
+              rowKey={(item) => item.symbol ?? 'unknown'}
               emptyMessage="No gains data available"
-              onRowClick={(item) => navigate(`/journal?symbol=${item.symbol}`)}
+              onRowClick={(item) => item.symbol && navigate(`/journal?symbol=${item.symbol}`)}
             />
           )}
         </div>
@@ -427,7 +414,7 @@ export default function TaxAnalytics() {
             <DataTable
               columns={taxBreakdownColumns}
               data={taxBreakdownData}
-              rowKey={(item) => item.period}
+              rowKey={(item) => item.period ?? 'unknown'}
               emptyMessage="No tax breakdown data available"
             />
           )}
@@ -470,7 +457,7 @@ export default function TaxAnalytics() {
           <DataTable
             columns={unrealizedColumns}
             data={unrealizedQ.data ?? []}
-            rowKey={(item) => item.symbol}
+            rowKey={(item) => item.symbol ?? 'unknown'}
             emptyMessage="No open positions"
           />
         )}
@@ -491,7 +478,7 @@ export default function TaxAnalytics() {
           <DataTable
             columns={costBasisColumns}
             data={costBasisQ.data ?? []}
-            rowKey={(item) => `${item.symbol}-${item.buy_date}`}
+            rowKey={(item) => item.symbol ?? 'unknown'}
             emptyMessage="No cost basis data"
           />
         )}

@@ -5,6 +5,7 @@ import EntitySelector from './EntitySelector'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
+  { to: '/analytics', icon: BarChart3, label: 'Analytics', end: true },
   { to: '/entities', icon: Building2, label: 'Entities', end: false },
   { to: '/imports', icon: Upload, label: 'Imports', end: false },
   { to: '/wallets', icon: Wallet, label: 'Wallets', end: false },
@@ -13,7 +14,6 @@ const navItems = [
   { to: '/journal', icon: BookOpen, label: 'Journal', end: false },
   { to: '/accounts', icon: TreePine, label: 'Accounts', end: false },
   { to: '/errors', icon: AlertTriangle, label: 'Errors', end: false },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics', end: true },
   { to: '/tax', icon: Calculator, label: 'Tax', end: true },
   { to: '/tax/analytics', icon: TrendingUp, label: 'Tax Analytics', end: false },
   { to: '/reports', icon: FileSpreadsheet, label: 'Reports', end: false },

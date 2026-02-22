@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 # Common symbol → CoinGecko ID mapping
 SYMBOL_TO_COINGECKO: dict[str, str] = {
+    # Major tokens
     "ETH": "ethereum",
     "BTC": "bitcoin",
     "WETH": "ethereum",
@@ -47,10 +48,88 @@ SYMBOL_TO_COINGECKO: dict[str, str] = {
     "PENDLE": "pendle",
     "ARB": "arbitrum",
     "OP": "optimism",
+    "DOGE": "dogecoin",
+    "SHIB": "shiba-inu",
+    "PEPE": "pepe",
+    "WLD": "worldcoin-wld",
+    "FET": "fetch-ai",
+    "ENA": "ethena",
+    "GHO": "gho",
+    "RAIL": "railgun",
+    "EIGEN": "eigenlayer",
+    "LIT": "litentry",
+    "SPK": "sparkdex",
+    "STSPK": "sparkdex",
+    "ATH": "aethir",
+    "ANKR": "ankr",
+    "BCH": "bitcoin-cash",
+    "FLOW": "flow",
+    "SOLV": "solv-protocol",
+    "WBETH": "wrapped-beacon-ether",
+    "XRP": "ripple",
+    "BTTC": "bittorrent-2",
+    "WAXP": "wax",
+    "ZBT": "zerobridge-bitcoin",
+    # Staked / wrapped variants
+    "STEAKETH": "ethereum",
+    "STEAKUSDC": "usd-coin",
+    "GTWETH": "ethereum",
+    "GTUSDC": "usd-coin",
+    # Aave v3 receipt tokens (≈ 1:1 underlying)
+    "AETHWETH": "ethereum",
+    "AETHWBTC": "bitcoin",
+    "AETHUSDC": "usd-coin",
+    "AETHUSDT": "tether",
+    "AETHDAI": "dai",
+    "AETHLIDOWETH": "ethereum",
+    # Spark protocol receipt tokens
+    "SPWETH": "ethereum",
+    "SPDAI": "dai",
+    # Compound v3 receipt tokens
+    "CWETHV3": "ethereum",
+    "CUSDCV3": "usd-coin",
 }
 
+
+def _resolve_coingecko_id(symbol: str) -> str | None:
+    """Resolve a token symbol to a CoinGecko ID, with auto-detection for protocol receipt tokens."""
+    upper = symbol.upper()
+
+    # 1. Direct static mapping (covers most tokens)
+    if upper in SYMBOL_TO_COINGECKO:
+        return SYMBOL_TO_COINGECKO[upper]
+
+    # 2. Aave v3 receipt tokens: aEth{TOKEN} → underlying
+    if upper.startswith("AETH"):
+        underlying = upper[4:]
+        return SYMBOL_TO_COINGECKO.get(underlying) or SYMBOL_TO_COINGECKO.get("W" + underlying)
+
+    # 3. Compound v3: c{TOKEN}v3 → underlying
+    if upper.startswith("C") and upper.endswith("V3"):
+        underlying = upper[1:-2]
+        return SYMBOL_TO_COINGECKO.get(underlying) or SYMBOL_TO_COINGECKO.get("W" + underlying)
+
+    # 4. Spark: sp{TOKEN} → underlying
+    if upper.startswith("SP") and len(upper) > 2:
+        underlying = upper[2:]
+        return SYMBOL_TO_COINGECKO.get(underlying) or SYMBOL_TO_COINGECKO.get("W" + underlying)
+
+    # 5. Staked tokens: st{TOKEN} → underlying (e.g. stSPK → sparkdex)
+    if upper.startswith("ST") and len(upper) > 2 and upper not in ("STETH",):
+        underlying = upper[2:]
+        result = SYMBOL_TO_COINGECKO.get(underlying) or SYMBOL_TO_COINGECKO.get("W" + underlying)
+        if result:
+            return result
+
+    # 6. Aave debt tokens: variableDebt*, stableDebt* — skip pricing
+    if "DEBT" in upper:
+        return None
+
+    logger.warning("No CoinGecko ID mapping for symbol: %s", symbol)
+    return None
+
 # Stablecoins that are always $1
-STABLECOINS = {"USDC", "USDT", "DAI", "FRAX", "USDS", "BUSD", "TUSD", "LUSD", "GUSD", "PYUSD"}
+STABLECOINS = {"USDC", "USDT", "DAI", "FRAX", "USDS", "BUSD", "TUSD", "LUSD", "GUSD", "PYUSD", "USD1", "BFUSD", "RWUSD"}
 
 BASE_URL = "https://api.coingecko.com"
 
@@ -77,9 +156,8 @@ class CoinGeckoProvider:
         if upper in STABLECOINS:
             return Decimal("1.0")
 
-        coingecko_id = SYMBOL_TO_COINGECKO.get(upper)
+        coingecko_id = _resolve_coingecko_id(symbol)
         if coingecko_id is None:
-            logger.warning("No CoinGecko ID mapping for symbol: %s", symbol)
             return None
 
         # Query a 2-hour window around the target timestamp

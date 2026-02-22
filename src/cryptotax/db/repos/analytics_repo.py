@@ -5,12 +5,12 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Optional
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cryptotax.db.models.account import Account
 from cryptotax.db.models.journal import JournalEntry, JournalSplit
-from cryptotax.db.models.wallet import Wallet
+from cryptotax.db.models.wallet import OnChainWallet, Wallet
 
 
 class AnalyticsRepo:
@@ -53,7 +53,7 @@ class AnalyticsRepo:
         if wallet_id is not None:
             stmt = stmt.where(Wallet.id == wallet_id)
         if chain is not None:
-            stmt = stmt.where(Wallet.chain == chain)
+            stmt = stmt.where(OnChainWallet.chain == chain)
         if symbol is not None:
             stmt = stmt.where(Account.symbol == symbol)
         if entry_type is not None:
@@ -97,9 +97,16 @@ class AnalyticsRepo:
         outflow_vnd = func.coalesce(
             func.sum(case((JournalSplit.quantity < 0, JournalSplit.value_vnd), else_=Decimal(0))), Decimal(0)
         ).label("outflow_vnd")
+        inflow_qty = func.coalesce(
+            func.sum(case((JournalSplit.quantity > 0, func.abs(JournalSplit.quantity)), else_=Decimal(0))), Decimal(0)
+        ).label("inflow_qty")
+        outflow_qty = func.coalesce(
+            func.sum(case((JournalSplit.quantity < 0, func.abs(JournalSplit.quantity)), else_=Decimal(0))), Decimal(0)
+        ).label("outflow_qty")
+        entry_count = func.count(func.distinct(JournalEntry.id)).label("entry_count")
 
         stmt = (
-            select(period, inflow_usd, inflow_vnd, outflow_usd, outflow_vnd)
+            select(period, inflow_usd, inflow_vnd, outflow_usd, outflow_vnd, inflow_qty, outflow_qty, entry_count)
             .select_from(JournalEntry)
             .join(JournalSplit, JournalSplit.journal_entry_id == JournalEntry.id)
             .join(Account, JournalSplit.account_id == Account.id)
@@ -123,6 +130,9 @@ class AnalyticsRepo:
                 "outflow_vnd": row.outflow_vnd or Decimal(0),
                 "net_usd": (row.inflow_usd or Decimal(0)) + (row.outflow_usd or Decimal(0)),
                 "net_vnd": (row.inflow_vnd or Decimal(0)) + (row.outflow_vnd or Decimal(0)),
+                "inflow_qty": row.inflow_qty or Decimal(0),
+                "outflow_qty": row.outflow_qty or Decimal(0),
+                "entry_count": row.entry_count or 0,
             }
             for row in result.all()
         ]
@@ -205,17 +215,22 @@ class AnalyticsRepo:
         f = self._extract_filters(filters)
         entity_id = f.pop("entity_id")
 
+        volume_usd_col = func.sum(func.abs(func.coalesce(JournalSplit.value_usd, Decimal(0))))
+        total_qty_col = func.sum(func.abs(func.coalesce(JournalSplit.quantity, Decimal(0))))
+        entry_count_col = func.count(func.distinct(JournalEntry.id))
+
         stmt = (
             select(
                 Account.symbol,
-                func.sum(func.abs(func.coalesce(JournalSplit.value_usd, Decimal(0)))).label("volume_usd"),
+                volume_usd_col.label("volume_usd"),
                 func.coalesce(
                     func.sum(case((JournalSplit.quantity > 0, JournalSplit.value_usd), else_=Decimal(0))), Decimal(0)
                 ).label("inflow_usd"),
                 func.coalesce(
                     func.sum(case((JournalSplit.quantity < 0, JournalSplit.value_usd), else_=Decimal(0))), Decimal(0)
                 ).label("outflow_usd"),
-                func.count(func.distinct(JournalEntry.id)).label("entry_count"),
+                entry_count_col.label("entry_count"),
+                total_qty_col.label("total_quantity"),
             )
             .select_from(JournalEntry)
             .join(JournalSplit, JournalSplit.journal_entry_id == JournalEntry.id)
@@ -228,7 +243,8 @@ class AnalyticsRepo:
         for key, val in f.items():
             stmt = self._apply_filter(stmt, key, val)
 
-        stmt = stmt.group_by(Account.symbol).order_by(func.sum(func.abs(func.coalesce(JournalSplit.value_usd, Decimal(0)))).desc()).limit(limit)
+        # Sort by USD volume, fallback to entry count when all USD = 0
+        stmt = stmt.group_by(Account.symbol).order_by(volume_usd_col.desc(), entry_count_col.desc()).limit(limit)
         result = await self._session.execute(stmt)
 
         return [
@@ -238,6 +254,7 @@ class AnalyticsRepo:
                 "inflow_usd": row.inflow_usd or Decimal(0),
                 "outflow_usd": row.outflow_usd or Decimal(0),
                 "entry_count": row.entry_count,
+                "total_quantity": row.total_quantity or Decimal(0),
             }
             for row in result.all()
         ]
@@ -251,9 +268,12 @@ class AnalyticsRepo:
         f = self._extract_filters(filters)
         entity_id = f.pop("entity_id")
 
+        # Use protocol when set, otherwise fall back to entry_type (for generic parsers)
+        group_col = func.coalesce(Account.protocol, JournalEntry.entry_type).label("protocol_or_type")
+
         stmt = (
             select(
-                Account.protocol,
+                group_col,
                 func.sum(func.abs(func.coalesce(JournalSplit.value_usd, Decimal(0)))).label("volume_usd"),
                 func.count(func.distinct(JournalEntry.id)).label("entry_count"),
                 func.array_agg(func.distinct(JournalEntry.entry_type)).label("entry_types"),
@@ -263,18 +283,17 @@ class AnalyticsRepo:
             .join(Account, JournalSplit.account_id == Account.id)
             .join(Wallet, Account.wallet_id == Wallet.id)
             .where(Wallet.entity_id == entity_id)
-            .where(Account.protocol.is_not(None))
         )
 
         for key, val in f.items():
             stmt = self._apply_filter(stmt, key, val)
 
-        stmt = stmt.group_by(Account.protocol).order_by(func.sum(func.abs(func.coalesce(JournalSplit.value_usd, Decimal(0)))).desc()).limit(limit)
+        stmt = stmt.group_by(group_col).order_by(func.sum(func.abs(func.coalesce(JournalSplit.value_usd, Decimal(0)))).desc()).limit(limit)
         result = await self._session.execute(stmt)
 
         return [
             {
-                "protocol": row.protocol,
+                "protocol": row.protocol_or_type,
                 "volume_usd": row.volume_usd or Decimal(0),
                 "entry_count": row.entry_count,
                 "entry_types": row.entry_types or [],
@@ -432,9 +451,15 @@ class AnalyticsRepo:
             func.sum(case((Account.account_type == "EXPENSE", func.abs(func.coalesce(JournalSplit.value_vnd, Decimal(0)))), else_=Decimal(0))),
             Decimal(0),
         ).label("expense_vnd")
+        income_count = func.count(
+            distinct(case((Account.account_type == "INCOME", JournalEntry.id)))
+        ).label("income_count")
+        expense_count = func.count(
+            distinct(case((Account.account_type == "EXPENSE", JournalEntry.id)))
+        ).label("expense_count")
 
         stmt = (
-            select(period, income_usd, expense_usd, income_vnd, expense_vnd)
+            select(period, income_usd, expense_usd, income_vnd, expense_vnd, income_count, expense_count)
             .select_from(JournalEntry)
             .join(JournalSplit, JournalSplit.journal_entry_id == JournalEntry.id)
             .join(Account, JournalSplit.account_id == Account.id)
@@ -456,6 +481,8 @@ class AnalyticsRepo:
                 "expense_usd": row.expense_usd or Decimal(0),
                 "income_vnd": row.income_vnd or Decimal(0),
                 "expense_vnd": row.expense_vnd or Decimal(0),
+                "income_count": row.income_count or 0,
+                "expense_count": row.expense_count or 0,
                 "net_usd": (row.income_usd or Decimal(0)) - (row.expense_usd or Decimal(0)),
                 "net_vnd": (row.income_vnd or Decimal(0)) - (row.expense_vnd or Decimal(0)),
             }
@@ -528,7 +555,7 @@ class AnalyticsRepo:
             select(
                 Wallet.id.label("wallet_id"),
                 Wallet.label.label("wallet_label"),
-                func.coalesce(Wallet.chain, func.coalesce(Wallet.wallet_type, "unknown")).label("chain"),
+                func.coalesce(OnChainWallet.chain, func.coalesce(Wallet.wallet_type, "unknown")).label("chain"),
                 func.coalesce(
                     func.sum(case((JournalSplit.quantity > 0, JournalSplit.value_usd), else_=Decimal(0))), Decimal(0)
                 ).label("inflow_usd"),
@@ -547,7 +574,7 @@ class AnalyticsRepo:
         for key, val in f.items():
             stmt = self._apply_filter(stmt, key, val)
 
-        stmt = stmt.group_by(Wallet.id, Wallet.label, Wallet.chain, Wallet.wallet_type)
+        stmt = stmt.group_by(Wallet.id, Wallet.label, OnChainWallet.chain, Wallet.wallet_type)
         result = await self._session.execute(stmt)
 
         return [
@@ -569,7 +596,7 @@ class AnalyticsRepo:
         f = self._extract_filters(filters)
         entity_id = f.pop("entity_id")
 
-        chain_col = func.coalesce(Wallet.chain, func.coalesce(Wallet.wallet_type, "unknown")).label("chain")
+        chain_col = func.coalesce(OnChainWallet.chain, func.coalesce(Wallet.wallet_type, "unknown")).label("chain")
 
         stmt = (
             select(
@@ -616,7 +643,7 @@ class AnalyticsRepo:
             "date_from": lambda s, v: s.where(JournalEntry.timestamp >= v),
             "date_to": lambda s, v: s.where(JournalEntry.timestamp <= v),
             "wallet_id": lambda s, v: s.where(Wallet.id == v),
-            "chain": lambda s, v: s.where(Wallet.chain == v),
+            "chain": lambda s, v: s.where(OnChainWallet.chain == v),
             "symbol": lambda s, v: s.where(Account.symbol == v),
             "entry_type": lambda s, v: s.where(JournalEntry.entry_type == v),
             "account_type": lambda s, v: s.where(Account.account_type == v),

@@ -15,6 +15,8 @@ class AccountResponse(BaseModel):
     balance_type: Optional[str] = None
     label: Optional[str] = None
     current_balance: Decimal = Decimal(0)
+    balance_usd: Decimal = Decimal(0)
+    balance_vnd: Decimal = Decimal(0)
 
     model_config = {"from_attributes": True}
 

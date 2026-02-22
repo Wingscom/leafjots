@@ -1,5 +1,6 @@
 export { CashFlowChart } from './CashFlowChart'
 export { IncomeExpenseChart } from './IncomeExpenseChart'
+export { IncomeExpenseCountChart } from './IncomeExpenseCountChart'
 export { BalanceOverTimeChart } from './BalanceOverTimeChart'
 export { CompositionDonut } from './CompositionDonut'
 export { EntryTypeBar } from './EntryTypeBar'

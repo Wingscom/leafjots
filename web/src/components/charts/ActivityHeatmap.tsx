@@ -29,16 +29,17 @@ export function ActivityHeatmap({ data, title = 'Activity Heatmap' }: Props) {
     )
   }
 
-  // Build a lookup map: date -> ActivityDay
+  // Build a lookup map: date -> ActivityDay (skip nulls)
   const lookup: Record<string, ActivityDay> = {}
   for (const day of data) {
-    lookup[day.date] = day
+    if (day.date) lookup[day.date] = day
   }
 
   const maxVolume = Math.max(...data.map((d) => d.volume_usd), 0)
 
   // Calculate date range: start from earliest Sunday before the first data point
-  const dates = data.map((d) => parseDate(d.date)).sort((a, b) => a.getTime() - b.getTime())
+  const validData = data.filter((d): d is ActivityDay & { date: string } => d.date !== null)
+  const dates = validData.map((d) => parseDate(d.date)).sort((a, b) => a.getTime() - b.getTime())
   if (dates.length === 0) return null
 
   const startDate = new Date(dates[0])
@@ -98,7 +99,7 @@ export function ActivityHeatmap({ data, title = 'Activity Heatmap' }: Props) {
                   className={`w-3 h-3 rounded-sm ${day ? getIntensityClass(day.volume_usd, maxVolume) : 'bg-gray-50'}`}
                   title={
                     day
-                      ? `${day.date}: ${day.entry_count} entries, $${day.volume_usd.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+                      ? `${day.date}: ${day.count} entries, $${day.volume_usd.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
                       : undefined
                   }
                 />

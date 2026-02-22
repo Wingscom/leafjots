@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, AsyncGenerator
 
 if TYPE_CHECKING:
     from cryptotax.accounting.bookkeeper import Bookkeeper
+    from cryptotax.infra.price.service import PriceService
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import Depends, HTTPException, Query
@@ -38,17 +39,25 @@ async def resolve_entity(
     return entity
 
 
-def build_bookkeeper(db: AsyncSession) -> "Bookkeeper":
-    """Create a Bookkeeper wired with PriceService + CoinGecko."""
-    from cryptotax.accounting.bookkeeper import Bookkeeper
+def build_price_service(db: AsyncSession) -> "PriceService":
+    """Create a PriceService wired with CoinGecko + CryptoCompare fallback."""
     from cryptotax.config import settings
     from cryptotax.infra.http.rate_limited_client import RateLimitedClient
     from cryptotax.infra.price.coingecko import CoinGeckoProvider
+    from cryptotax.infra.price.cryptocompare import CryptoCompareProvider
     from cryptotax.infra.price.service import PriceService
-    from cryptotax.parser.registry import build_default_registry
 
     http_client = RateLimitedClient(rate_per_second=10.0, timeout=30.0)
     coingecko = CoinGeckoProvider(http_client, api_key=settings.coingecko_api_key)
-    price_service = PriceService(db, coingecko)
+    cryptocompare = CryptoCompareProvider(http_client, api_key=settings.cryptocompare_api_key)
+    return PriceService(db, coingecko, cryptocompare)
+
+
+def build_bookkeeper(db: AsyncSession) -> "Bookkeeper":
+    """Create a Bookkeeper wired with PriceService + CoinGecko."""
+    from cryptotax.accounting.bookkeeper import Bookkeeper
+    from cryptotax.parser.registry import build_default_registry
+
+    price_service = build_price_service(db)
     registry = build_default_registry()
     return Bookkeeper(db, registry, price_service=price_service)
