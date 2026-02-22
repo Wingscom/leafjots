@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 
 ## Current Position
 
-Phase: 12 of 12 (Management Dashboard & Comprehensive Analytics) — Planned (6 plans, 5 waves)
-Plan: 4 of 6 in current phase
-Status: Executing Phase 12
-Last activity: 2026-02-22 -- Completed 12-04 (Chart Components & Analytics Hooks)
+Phase: 12 of 12 (Management Dashboard & Comprehensive Analytics) — COMPLETE (6/6 plans)
+Plan: 6 of 6 in current phase
+Status: Phase 12 Complete — v3.0 Milestone DONE
+Last activity: 2026-02-22 -- Completed 12-06 (Analytics Dashboards + AI Insight Placeholder)
 
-Progress: [██████░░░░] 67% (4/6 plans)
+Progress: [██████████] 100% (6/6 plans)
 
 ## Overall Project Stats
 
@@ -25,13 +25,13 @@ Progress: [██████░░░░] 67% (4/6 plans)
 | TypeScript errors | 0 |
 | Backend parsers | 12 |
 | API endpoints | 43+ |
-| Web pages | 11 |
+| Web pages | 13 |
 | Alembic migrations | base + v3_001 + phase12 |
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7 (v3.0)
+- Total plans completed: 8 (v3.0)
 - Average duration: --
 - Total execution time: --
 
@@ -44,7 +44,7 @@ Progress: [██████░░░░] 67% (4/6 plans)
 | 9. Binance CSV Parser Core | 1/1 | -- | -- |
 | 10. Binance CSV Extended Ops | 1/1 | -- | -- |
 | 11. Import UI Polish | 1/1 | -- | -- |
-| 12. Management Dashboard | 4/6 | -- | -- |
+| 12. Management Dashboard | 6/6 | -- | -- |
 
 ## Accumulated Context
 
@@ -83,10 +83,19 @@ Progress: [██████░░░░] 67% (4/6 plans)
 - BalanceOverTimeChart groups BalancePeriod[] by symbol into period->symbol map for Recharts multi-line
 - CompositionDonut uses Math.abs() on balance_usd before account_type aggregation to avoid negative cancellation
 - ActivityHeatmap is pure CSS grid (not Recharts) — 52 cols x 7 rows colored by volume percentile
+- Journal URL drill-down uses useSearchParams -- filters sync to URL so analytics pages can link with pre-set filters
+- Accounts filters applied client-side -- avoids API changes for simple wallet/symbol/protocol/type filtering
+- Journal balance indicator computed from value_usd sum across splits (must be < $0.01 absolute)
+- ChainSelector values are lowercase (matching API) -- value/label separation in component
+- Dashboard mini CashFlowChart uses last6MonthsRange + granularity=month with graceful empty state
+- useRealizedGains and useOpenLots hooks accept filter params (RealizedGainsFilters, OpenLotsFilters)
+- AnalyticsFilters imported directly from api/analytics (useAnalytics hooks do not re-export it)
+- NavLink end=true on /, /analytics, /tax nav items prevents parent-path active highlight on child routes
 
 ### Roadmap Evolution
 
 - Phase 12 added: Management Dashboard & Comprehensive Analytics
+- v3.0 Milestone now fully complete
 
 ### Known Limitations / Concerns
 
@@ -103,5 +112,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 12-04-PLAN.md (Chart Components & Analytics Hooks)
+Stopped at: Completed 12-06-PLAN.md (Analytics Dashboards + AI Insight Placeholder) — Phase 12 COMPLETE
 Resume file: None
