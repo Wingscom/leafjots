@@ -2,6 +2,14 @@ import { useState } from 'react'
 import { ChevronDown, ChevronRight, X } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useAccounts, useAccountHistory } from '../hooks/useAccounts'
+import { useWallets } from '../hooks/useWallets'
+import {
+  FilterBar,
+  WalletSelector,
+  SymbolInput,
+  ProtocolSelector,
+  AccountTypeSelector,
+} from '../components/filters'
 import type { Account } from '../api/accounts'
 
 const TYPE_STYLES: Record<string, { color: string; bg: string; label: string }> = {
@@ -31,20 +39,77 @@ export default function Accounts() {
   const [expandedType, setExpandedType] = useState<string | null>('ASSET')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const grouped = data ? groupByType(data.accounts) : {}
+  // Filter state
+  const [walletId, setWalletId] = useState<string | null>(null)
+  const [symbol, setSymbol] = useState<string>('')
+  const [protocol, setProtocol] = useState<string | null>(null)
+  const [accountType, setAccountType] = useState<string | null>(null)
+  const [balanceAtDate, setBalanceAtDate] = useState<string>('')
+
+  const { data: walletData } = useWallets()
+  const wallets = (walletData?.wallets ?? []).map((w) => ({
+    id: w.id,
+    label: w.label ?? w.address ?? w.id,
+  }))
+
+  // Apply client-side filters (API supports server-side filtering if needed)
+  const allAccounts = data?.accounts ?? []
+  const filteredAccounts = allAccounts.filter((acc) => {
+    if (walletId && acc.wallet_id !== walletId) return false
+    if (symbol && !acc.symbol.toUpperCase().includes(symbol.toUpperCase())) return false
+    if (protocol && acc.protocol !== protocol) return false
+    if (accountType && acc.account_type !== accountType) return false
+    return true
+  })
+
+  const grouped = groupByType(filteredAccounts)
   const typeOrder = ['ASSET', 'LIABILITY', 'INCOME', 'EXPENSE']
+
+  function handleReset() {
+    setWalletId(null)
+    setSymbol('')
+    setProtocol(null)
+    setAccountType(null)
+    setBalanceAtDate('')
+  }
 
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Accounts & Balances</h2>
 
+      {/* Filters */}
+      <div className="mb-6">
+        <FilterBar onReset={handleReset}>
+          <WalletSelector value={walletId} onChange={setWalletId} wallets={wallets} />
+          <SymbolInput value={symbol} onChange={setSymbol} />
+          <ProtocolSelector value={protocol} onChange={setProtocol} />
+          <AccountTypeSelector value={accountType} onChange={setAccountType} />
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Balance at Date</label>
+            <input
+              type="date"
+              value={balanceAtDate}
+              onChange={(e) => setBalanceAtDate(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {balanceAtDate && (
+            <span className="self-end text-xs text-blue-600 bg-blue-50 px-2 py-1.5 rounded-lg border border-blue-200">
+              Snapshot: {new Date(balanceAtDate).toLocaleDateString()}
+            </span>
+          )}
+        </FilterBar>
+      </div>
+
       {isLoading ? (
         <div className="p-8 text-center text-gray-400">Loading accounts...</div>
       ) : error ? (
         <div className="p-8 text-center text-red-500">Failed to load accounts</div>
-      ) : !data?.accounts.length ? (
+      ) : !filteredAccounts.length ? (
         <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">
-          No accounts yet. Parse transactions to create accounts.
+          {allAccounts.length > 0
+            ? 'No accounts match the current filters.'
+            : 'No accounts yet. Parse transactions to create accounts.'}
         </div>
       ) : (
         <div className="space-y-4">
@@ -75,7 +140,9 @@ export default function Accounts() {
                           <th className="px-4 py-2 text-left font-medium text-gray-600">Account</th>
                           <th className="px-4 py-2 text-left font-medium text-gray-600">Subtype</th>
                           <th className="px-4 py-2 text-left font-medium text-gray-600">Symbol</th>
-                          <th className="px-4 py-2 text-right font-medium text-gray-600">Balance</th>
+                          <th className="px-4 py-2 text-right font-medium text-gray-600">
+                            Balance{balanceAtDate ? ` (as of ${new Date(balanceAtDate).toLocaleDateString()})` : ''}
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
@@ -109,13 +176,37 @@ export default function Accounts() {
       )}
 
       {/* Account History Modal */}
-      {selectedId && <AccountHistoryModal accountId={selectedId} onClose={() => setSelectedId(null)} />}
+      {selectedId && (
+        <AccountHistoryModal
+          accountId={selectedId}
+          balanceAtDate={balanceAtDate || undefined}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
     </div>
   )
 }
 
-function AccountHistoryModal({ accountId, onClose }: { accountId: string; onClose: () => void }) {
+function AccountHistoryModal({
+  accountId,
+  balanceAtDate,
+  onClose,
+}: {
+  accountId: string
+  balanceAtDate?: string
+  onClose: () => void
+}) {
+  const [histDateFrom, setHistDateFrom] = useState<string>('')
+  const [histDateTo, setHistDateTo] = useState<string>(balanceAtDate ?? '')
   const { data, isLoading } = useAccountHistory(accountId)
+
+  // Apply client-side date filter for splits
+  const splits = (data?.splits ?? []).filter((s) => {
+    const ts = new Date(s.timestamp)
+    if (histDateFrom && ts < new Date(histDateFrom)) return false
+    if (histDateTo && ts > new Date(histDateTo + 'T23:59:59Z')) return false
+    return true
+  })
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -132,10 +223,40 @@ function AccountHistoryModal({ accountId, onClose }: { accountId: string; onClos
           </button>
         </div>
 
+        {/* Date filter for history */}
+        <div className="px-6 py-3 border-b border-gray-100 flex items-end gap-3 bg-gray-50">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">From</label>
+            <input
+              type="date"
+              value={histDateFrom}
+              onChange={(e) => setHistDateFrom(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">To</label>
+            <input
+              type="date"
+              value={histDateTo}
+              onChange={(e) => setHistDateTo(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {(histDateFrom || histDateTo) && (
+            <button
+              onClick={() => { setHistDateFrom(''); setHistDateTo('') }}
+              className="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
         <div className="px-6 py-4">
           {isLoading ? (
             <p className="text-gray-400 text-center py-4">Loading...</p>
-          ) : !data?.splits.length ? (
+          ) : !splits.length ? (
             <p className="text-gray-400 text-center py-4">No transactions for this account</p>
           ) : (
             <table className="w-full text-sm">
@@ -148,7 +269,7 @@ function AccountHistoryModal({ accountId, onClose }: { accountId: string; onClos
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {data.splits.map((s) => (
+                {splits.map((s) => (
                   <tr key={s.id}>
                     <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">
                       {new Date(s.timestamp).toLocaleDateString()}

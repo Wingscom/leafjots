@@ -1,10 +1,23 @@
 import { useNavigate } from 'react-router-dom'
-import { Wallet, ArrowLeftRight, CheckCircle, AlertTriangle, Plus, Upload, Play, FileSpreadsheet, Calculator } from 'lucide-react'
+import { Wallet, ArrowLeftRight, CheckCircle, AlertTriangle, Plus, Upload, Play, FileSpreadsheet, Calculator, BarChart2 } from 'lucide-react'
 import { useWallets } from '../hooks/useWallets'
 import { useTransactions } from '../hooks/useTransactions'
 import { useParseStats } from '../hooks/useParser'
 import { useEntities } from '../hooks/useEntities'
 import { useEntity } from '../context/EntityContext'
+import { useCashFlow, useOverview } from '../hooks/useAnalytics'
+import { CashFlowChart } from '../components/charts'
+
+// Last 6 months date range
+function last6MonthsRange(): { date_from: string; date_to: string } {
+  const to = new Date()
+  const from = new Date()
+  from.setMonth(from.getMonth() - 6)
+  return {
+    date_from: from.toISOString().slice(0, 10),
+    date_to: to.toISOString().slice(0, 10),
+  }
+}
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -23,14 +36,21 @@ export default function Dashboard() {
     : '0%'
   const errorCount = parseStats?.errors ?? 0
 
+  // Analytics data for mini chart and KPIs (graceful fallback)
+  const cashFlowFilters = last6MonthsRange()
+  const { data: cashFlowData } = useCashFlow({ ...cashFlowFilters, granularity: 'month' })
+  const { data: overviewData } = useOverview(cashFlowFilters)
+
   // Empty state: no entity or no wallets
   if (!entityId || walletCount === 0) {
     return <OnboardingView hasEntity={!!entityId} entityName={selectedEntity?.name} navigate={navigate} />
   }
 
+  // Use real KPI data from analytics if available, fallback to existing
+  const displayTxCount = overviewData?.kpi.total_entries ?? txCount
   const stats = [
     { label: 'Wallets tracked', value: String(walletCount), icon: Wallet, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Transactions loaded', value: txCount.toLocaleString(), icon: ArrowLeftRight, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Transactions loaded', value: displayTxCount.toLocaleString(), icon: ArrowLeftRight, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: 'Parsed', value: parsedPct, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'Errors', value: String(errorCount), icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50' },
   ]
@@ -60,6 +80,21 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Mini Cash Flow Chart — last 6 months */}
+      <div className="mb-8 relative">
+        <CashFlowChart
+          data={cashFlowData ?? []}
+          title="Cash Flow — Last 6 Months"
+        />
+        <button
+          onClick={() => navigate('/analytics')}
+          className="absolute top-4 right-4 flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium"
+        >
+          <BarChart2 className="w-3.5 h-3.5" />
+          Full Analytics
+        </button>
+      </div>
+
       {/* Quick Actions */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
         <h3 className="font-semibold text-gray-900 mb-3">Quick Actions</h3>
@@ -87,6 +122,12 @@ export default function Dashboard() {
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition-colors"
           >
             <FileSpreadsheet className="w-4 h-4" /> Generate Report
+          </button>
+          <button
+            onClick={() => navigate('/analytics')}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-50 text-indigo-700 text-sm font-medium hover:bg-indigo-100 transition-colors"
+          >
+            <BarChart2 className="w-4 h-4" /> View Analytics
           </button>
         </div>
       </div>

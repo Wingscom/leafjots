@@ -1,5 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { calculateTax, getRealizedGains, getOpenLots, getTaxSummary, type TaxCalculateRequest } from '../api/tax'
+import {
+  calculateTax,
+  getRealizedGains,
+  getOpenLots,
+  getTaxSummary,
+  type TaxCalculateRequest,
+  type RealizedGainsFilters,
+  type OpenLotsFilters,
+} from '../api/tax'
 import { useEntity } from '../context/EntityContext'
 
 const TAX_KEY = ['tax'] as const
@@ -14,19 +22,19 @@ export function useCalculateTax() {
   })
 }
 
-export function useRealizedGains() {
+export function useRealizedGains(filters: RealizedGainsFilters = {}) {
   const { entityId } = useEntity()
   return useQuery({
-    queryKey: [...TAX_KEY, 'realized-gains', entityId],
-    queryFn: () => getRealizedGains(entityId ?? undefined),
+    queryKey: [...TAX_KEY, 'realized-gains', entityId, filters],
+    queryFn: () => getRealizedGains(entityId ?? undefined, filters),
   })
 }
 
-export function useOpenLots() {
+export function useOpenLots(filters: OpenLotsFilters = {}) {
   const { entityId } = useEntity()
   return useQuery({
-    queryKey: [...TAX_KEY, 'open-lots', entityId],
-    queryFn: () => getOpenLots(entityId ?? undefined),
+    queryKey: [...TAX_KEY, 'open-lots', entityId, filters],
+    queryFn: () => getOpenLots(entityId ?? undefined, filters),
   })
 }
 

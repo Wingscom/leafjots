@@ -1,25 +1,56 @@
 import { useState } from 'react'
-import { Calculator, TrendingUp, TrendingDown, ShieldCheck, ArrowUpDown } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Calculator, TrendingUp, TrendingDown, ShieldCheck, ArrowUpDown, BarChart2 } from 'lucide-react'
 import { useCalculateTax, useRealizedGains, useOpenLots, useTaxSummary } from '../hooks/useTax'
-import type { TaxCalculateResponse } from '../api/tax'
+import { SymbolInput } from '../components/filters'
+import type { TaxCalculateResponse, RealizedGainsFilters, OpenLotsFilters } from '../api/tax'
 
 type TabId = 'gains' | 'lots' | 'transfers'
+type GainFilter = 'all' | 'gains' | 'losses'
 
 export default function Tax() {
+  const navigate = useNavigate()
   const [startDate, setStartDate] = useState('2025-01-01')
   const [endDate, setEndDate] = useState('2025-12-31')
   const [activeTab, setActiveTab] = useState<TabId>('gains')
   const [calcResult, setCalcResult] = useState<TaxCalculateResponse | null>(null)
 
+  // Realized gains filters
+  const [gainsSymbol, setGainsSymbol] = useState('')
+  const [gainFilter, setGainFilter] = useState<GainFilter>('all')
+  const [minHoldingDays, setMinHoldingDays] = useState('')
+  const [maxHoldingDays, setMaxHoldingDays] = useState('')
+
+  // Open lots filter
+  const [lotsSymbol, setLotsSymbol] = useState('')
+
   const calculateMutation = useCalculateTax()
-  const { data: savedGains } = useRealizedGains()
-  const { data: savedLots } = useOpenLots()
+
+  const gainsFilters: RealizedGainsFilters = {
+    symbol: gainsSymbol || undefined,
+    gain_only: gainFilter === 'gains' ? true : undefined,
+    loss_only: gainFilter === 'losses' ? true : undefined,
+  }
+
+  const lotsFilters: OpenLotsFilters = {
+    symbol: lotsSymbol || undefined,
+  }
+
+  const { data: savedGains } = useRealizedGains(gainsFilters)
+  const { data: savedLots } = useOpenLots(lotsFilters)
   const { data: savedSummary } = useTaxSummary()
 
   const summary = calcResult?.summary ?? savedSummary
-  const closedLots = calcResult?.closed_lots ?? savedGains ?? []
+  const rawClosedLots = calcResult?.closed_lots ?? savedGains ?? []
   const openLots = calcResult?.open_lots ?? savedLots ?? []
   const transfers = calcResult?.taxable_transfers ?? []
+
+  // Apply client-side holding days filter (since server may not support it)
+  const closedLots = rawClosedLots.filter((lot) => {
+    if (minHoldingDays && lot.holding_days < Number(minHoldingDays)) return false
+    if (maxHoldingDays && lot.holding_days > Number(maxHoldingDays)) return false
+    return true
+  })
 
   const handleCalculate = () => {
     calculateMutation.mutate(
@@ -39,7 +70,16 @@ export default function Tax() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Tax Calculator</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Tax Calculator</h2>
+        <button
+          onClick={() => navigate('/tax/analytics')}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-50 text-purple-700 text-sm font-medium hover:bg-purple-100 transition-colors"
+        >
+          <BarChart2 className="w-4 h-4" />
+          View Tax Analytics
+        </button>
+      </div>
 
       {/* Controls */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 flex items-end gap-4">
@@ -130,6 +170,59 @@ export default function Tax() {
             </button>
           ))}
         </div>
+
+        {/* Per-tab filter section */}
+        {activeTab === 'gains' && (
+          <div className="px-4 pt-4 pb-2 border-b border-gray-100 flex flex-wrap items-end gap-3 bg-gray-50">
+            <SymbolInput value={gainsSymbol} onChange={setGainsSymbol} />
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Direction</label>
+              <div className="flex gap-1">
+                {(['all', 'gains', 'losses'] as GainFilter[]).map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setGainFilter(opt)}
+                    className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                      gainFilter === opt
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'border-gray-300 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {opt === 'all' ? 'All' : opt === 'gains' ? 'Gains only' : 'Losses only'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Holding Days</label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Min"
+                  value={minHoldingDays}
+                  onChange={(e) => setMinHoldingDays(e.target.value)}
+                  className="w-16 px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
+                />
+                <span className="text-gray-400 text-xs">–</span>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Max"
+                  value={maxHoldingDays}
+                  onChange={(e) => setMaxHoldingDays(e.target.value)}
+                  className="w-16 px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'lots' && (
+          <div className="px-4 pt-4 pb-2 border-b border-gray-100 flex flex-wrap items-end gap-3 bg-gray-50">
+            <SymbolInput value={lotsSymbol} onChange={setLotsSymbol} />
+          </div>
+        )}
 
         <div className="p-4">
           {activeTab === 'gains' && <GainsTable lots={closedLots} />}
