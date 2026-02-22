@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 12 of 12 (Management Dashboard & Comprehensive Analytics) — Planned (6 plans, 5 waves)
-Plan: 3 of 6 in current phase
+Plan: 4 of 6 in current phase
 Status: Executing Phase 12
-Last activity: 2026-02-21 -- Completed 12-03 (Shared Filter & Data Display Components)
+Last activity: 2026-02-22 -- Completed 12-04 (Chart Components & Analytics Hooks)
 
-Progress: [█████░░░░░] 50% (3/6 plans)
+Progress: [██████░░░░] 67% (4/6 plans)
 
 ## Overall Project Stats
 
@@ -31,7 +31,7 @@ Progress: [█████░░░░░] 50% (3/6 plans)
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6 (v3.0)
+- Total plans completed: 7 (v3.0)
 - Average duration: --
 - Total execution time: --
 
@@ -44,11 +44,11 @@ Progress: [█████░░░░░] 50% (3/6 plans)
 | 9. Binance CSV Parser Core | 1/1 | -- | -- |
 | 10. Binance CSV Extended Ops | 1/1 | -- | -- |
 | 11. Import UI Polish | 1/1 | -- | -- |
-| 12. Management Dashboard | 3/6 | -- | -- |
+| 12. Management Dashboard | 4/6 | -- | -- |
 
 ## Accumulated Context
 
-### Decisions Made (from v1.0 + v2.0 + v3.0 Phases 7-11)
+### Decisions Made (from v1.0 + v2.0 + v3.0 Phases 7-12)
 
 - Entity model exists with UUID, name, base_currency, soft delete -- repos accept entity_id
 - API parameterized: all endpoints accept optional entity_id query param via resolve_entity dependency
@@ -79,6 +79,10 @@ Progress: [█████░░░░░] 50% (3/6 plans)
 - TaxAnalyticsRepo (8 methods) queries ClosedLotRecord, OpenLotRecord, TaxableTransferRecord
 - TaxableTransferRecord table persisted by TaxEngine alongside closed/open lots
 - TaxableTransfer domain model has value_usd + journal_entry_id for DB persistence
+- Analytics TypeScript client uses analyticsPath() helper building URL + filter query string + entityId
+- BalanceOverTimeChart groups BalancePeriod[] by symbol into period->symbol map for Recharts multi-line
+- CompositionDonut uses Math.abs() on balance_usd before account_type aggregation to avoid negative cancellation
+- ActivityHeatmap is pure CSS grid (not Recharts) — 52 cols x 7 rows colored by volume percentile
 
 ### Roadmap Evolution
 
@@ -98,6 +102,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-21
-Stopped at: Completed 12-01-PLAN.md (analytics backend foundation)
+Last session: 2026-02-22
+Stopped at: Completed 12-04-PLAN.md (Chart Components & Analytics Hooks)
 Resume file: None
