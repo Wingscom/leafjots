@@ -8,6 +8,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from cryptotax.api.accounts import router as accounts_router
+from cryptotax.api.analytics import router as analytics_router
 from cryptotax.api.entities import router as entities_router
 from cryptotax.api.errors import router as errors_router
 from cryptotax.api.imports import router as imports_router
@@ -49,6 +50,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(analytics_router)
 app.include_router(entities_router)
 app.include_router(wallets_router)
 app.include_router(transactions_router)
