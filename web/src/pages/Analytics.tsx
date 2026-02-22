@@ -252,7 +252,7 @@ export default function Analytics() {
           ) : cashFlowQ.isError ? (
             <SectionError onRetry={() => cashFlowQ.refetch()} />
           ) : (
-            <CashFlowChart data={cashFlowQ.data ?? []} title="Cash Flow" />
+            <CashFlowChart data={cashFlowQ.data ?? []} title="Cash Flow" onBarClick={(period) => navigate(`/journal?date_from=${period}&date_to=${period}`)} />
           )}
         </div>
 
@@ -286,7 +286,7 @@ export default function Analytics() {
           ) : entryTypesQ.isError ? (
             <SectionError onRetry={() => entryTypesQ.refetch()} />
           ) : (
-            <EntryTypeBar data={entryTypesQ.data ?? []} title="Entry Type Breakdown" />
+            <EntryTypeBar data={entryTypesQ.data ?? []} title="Entry Type Breakdown" onBarClick={(entryType) => navigate(`/journal?entry_type=${entryType}`)} />
           )}
         </div>
       </div>

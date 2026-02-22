@@ -13,13 +13,14 @@ import type { CashFlowPeriod } from '../../api/analytics'
 interface Props {
   data: CashFlowPeriod[]
   title?: string
+  onBarClick?: (period: string) => void
 }
 
 function formatUSD(value: number): string {
   return `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
 }
 
-export function CashFlowChart({ data, title = 'Cash Flow' }: Props) {
+export function CashFlowChart({ data, title = 'Cash Flow', onBarClick }: Props) {
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -33,7 +34,7 @@ export function CashFlowChart({ data, title = 'Cash Flow' }: Props) {
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">{title}</h3>
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+        <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }} onClick={onBarClick ? (state) => { if (state?.activeLabel) onBarClick(state.activeLabel) } : undefined}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis dataKey="period" tick={{ fontSize: 11 }} />
           <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />

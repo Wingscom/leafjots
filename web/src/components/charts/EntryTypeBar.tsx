@@ -14,6 +14,7 @@ interface Props {
   data: EntryTypeBreakdown[]
   metric?: 'count' | 'volume_usd'
   title?: string
+  onBarClick?: (entryType: string) => void
 }
 
 const BAR_COLORS = [
@@ -27,7 +28,7 @@ const BAR_COLORS = [
   '#ef4444',
 ]
 
-export function EntryTypeBar({ data, metric = 'count', title = 'Entry Types' }: Props) {
+export function EntryTypeBar({ data, metric = 'count', title = 'Entry Types', onBarClick }: Props) {
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -51,6 +52,7 @@ export function EntryTypeBar({ data, metric = 'count', title = 'Entry Types' }: 
           layout="vertical"
           data={data}
           margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+          onClick={onBarClick ? (state) => { if (state?.activeLabel) onBarClick(String(state.activeLabel)) } : undefined}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
           <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={formatter} />
