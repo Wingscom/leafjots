@@ -12,6 +12,8 @@ import Tax from './pages/Tax'
 import Reports from './pages/Reports'
 import Entities from './pages/Entities'
 import Imports from './pages/Imports'
+import Analytics from './pages/Analytics'
+import TaxAnalytics from './pages/TaxAnalytics'
 
 export default function App() {
   return (
@@ -29,6 +31,8 @@ export default function App() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/entities" element={<Entities />} />
           <Route path="/imports" element={<Imports />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/tax/analytics" element={<TaxAnalytics />} />
         </Route>
       </Routes>
     </EntityProvider>

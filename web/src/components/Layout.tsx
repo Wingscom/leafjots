@@ -1,20 +1,22 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Wallet, ArrowLeftRight, Code2, BookOpen, TreePine, AlertTriangle, Calculator, FileSpreadsheet, Building2, Upload } from 'lucide-react'
+import { LayoutDashboard, Wallet, ArrowLeftRight, Code2, BookOpen, TreePine, AlertTriangle, Calculator, FileSpreadsheet, Building2, Upload, BarChart3, TrendingUp } from 'lucide-react'
 import { clsx } from 'clsx'
 import EntitySelector from './EntitySelector'
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/entities', icon: Building2, label: 'Entities' },
-  { to: '/imports', icon: Upload, label: 'Imports' },
-  { to: '/wallets', icon: Wallet, label: 'Wallets' },
-  { to: '/transactions', icon: ArrowLeftRight, label: 'Transactions' },
-  { to: '/parser', icon: Code2, label: 'Parser Debug' },
-  { to: '/journal', icon: BookOpen, label: 'Journal' },
-  { to: '/accounts', icon: TreePine, label: 'Accounts' },
-  { to: '/errors', icon: AlertTriangle, label: 'Errors' },
-  { to: '/tax', icon: Calculator, label: 'Tax' },
-  { to: '/reports', icon: FileSpreadsheet, label: 'Reports' },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
+  { to: '/entities', icon: Building2, label: 'Entities', end: false },
+  { to: '/imports', icon: Upload, label: 'Imports', end: false },
+  { to: '/wallets', icon: Wallet, label: 'Wallets', end: false },
+  { to: '/transactions', icon: ArrowLeftRight, label: 'Transactions', end: false },
+  { to: '/parser', icon: Code2, label: 'Parser Debug', end: false },
+  { to: '/journal', icon: BookOpen, label: 'Journal', end: false },
+  { to: '/accounts', icon: TreePine, label: 'Accounts', end: false },
+  { to: '/errors', icon: AlertTriangle, label: 'Errors', end: false },
+  { to: '/analytics', icon: BarChart3, label: 'Analytics', end: true },
+  { to: '/tax', icon: Calculator, label: 'Tax', end: true },
+  { to: '/tax/analytics', icon: TrendingUp, label: 'Tax Analytics', end: false },
+  { to: '/reports', icon: FileSpreadsheet, label: 'Reports', end: false },
 ]
 
 export default function Layout() {
@@ -29,10 +31,11 @@ export default function Layout() {
           <EntitySelector />
         </div>
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-          {navItems.map(({ to, icon: Icon, label }) => (
+          {navItems.map(({ to, icon: Icon, label, end }) => (
             <NavLink
               key={to}
               to={to}
+              end={end}
               className={({ isActive }) =>
                 clsx(
                   'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
