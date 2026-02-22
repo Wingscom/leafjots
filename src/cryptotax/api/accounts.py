@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -20,9 +21,20 @@ async def list_accounts(
     db: DbDep,
     entity: Entity = Depends(resolve_entity),
     account_type: Optional[str] = Query(None),
+    subtype: Optional[str] = Query(None),
+    symbol: Optional[str] = Query(None),
+    protocol: Optional[str] = Query(None),
+    wallet_id: Optional[uuid.UUID] = Query(None),
 ) -> AccountList:
     account_repo = AccountRepo(db)
-    accounts = await account_repo.get_all_for_entity(entity.id, account_type=account_type)
+    accounts = await account_repo.get_all_for_entity(
+        entity.id,
+        account_type=account_type,
+        subtype=subtype,
+        symbol=symbol,
+        protocol=protocol,
+        wallet_id=wallet_id,
+    )
     balances = await account_repo.get_balances_for_entity(entity.id)
 
     return AccountList(
@@ -47,6 +59,8 @@ async def list_accounts(
 async def get_account_history(
     account_id: uuid.UUID,
     db: DbDep,
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ) -> AccountHistory:
@@ -56,7 +70,9 @@ async def get_account_history(
         raise HTTPException(status_code=404, detail="Account not found")
 
     journal_repo = JournalRepo(db)
-    splits, total = await journal_repo.get_splits_for_account(account_id, limit=limit, offset=offset)
+    splits, total = await journal_repo.get_splits_for_account(
+        account_id, date_from=date_from, date_to=date_to, limit=limit, offset=offset
+    )
 
     return AccountHistory(
         splits=[AccountHistorySplit(

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import func, select
@@ -62,6 +63,8 @@ class TransactionRepo:
         entity_id: uuid.UUID,
         chain: Optional[str] = None,
         status: Optional[str] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[Transaction], int]:
@@ -81,6 +84,14 @@ class TransactionRepo:
         if status:
             base = base.where(Transaction.status == status)
             count_q = count_q.where(Transaction.status == status)
+        if date_from is not None:
+            epoch_from = int(date_from.timestamp())
+            base = base.where(Transaction.timestamp >= epoch_from)
+            count_q = count_q.where(Transaction.timestamp >= epoch_from)
+        if date_to is not None:
+            epoch_to = int(date_to.timestamp())
+            base = base.where(Transaction.timestamp <= epoch_to)
+            count_q = count_q.where(Transaction.timestamp <= epoch_to)
 
         total_result = await self._session.execute(count_q)
         total = total_result.scalar_one()

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -21,11 +22,30 @@ async def list_journal(
     db: DbDep,
     entity: Entity = Depends(resolve_entity),
     entry_type: Optional[str] = Query(None),
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
+    symbol: Optional[str] = Query(None),
+    account_type: Optional[str] = Query(None),
+    wallet_id: Optional[uuid.UUID] = Query(None),
+    protocol: Optional[str] = Query(None),
+    account_subtype: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ) -> JournalList:
     journal_repo = JournalRepo(db)
-    entries, total = await journal_repo.list_for_entity(entity.id, entry_type=entry_type, limit=limit, offset=offset)
+    entries, total = await journal_repo.list_for_entity(
+        entity.id,
+        entry_type=entry_type,
+        date_from=date_from,
+        date_to=date_to,
+        symbol=symbol,
+        account_type=account_type,
+        wallet_id=wallet_id,
+        protocol=protocol,
+        account_subtype=account_subtype,
+        limit=limit,
+        offset=offset,
+    )
 
     return JournalList(
         entries=[JournalEntryResponse.model_validate(e) for e in entries],

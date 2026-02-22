@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -21,6 +22,8 @@ async def list_transactions(
     wallet_id: Optional[uuid.UUID] = Query(None),
     chain: Optional[str] = Query(None),
     tx_status: Optional[str] = Query(None, alias="status"),
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ) -> TransactionList:
@@ -29,7 +32,9 @@ async def list_transactions(
     if wallet_id:
         txs, total = await tx_repo.list_for_wallet(wallet_id, status=tx_status, limit=limit, offset=offset)
     else:
-        txs, total = await tx_repo.list_for_entity(entity.id, chain=chain, status=tx_status, limit=limit, offset=offset)
+        txs, total = await tx_repo.list_for_entity(
+            entity.id, chain=chain, status=tx_status, date_from=date_from, date_to=date_to, limit=limit, offset=offset
+        )
 
     return TransactionList(
         transactions=[TransactionResponse.model_validate(tx) for tx in txs],

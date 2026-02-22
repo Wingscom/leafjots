@@ -18,6 +18,10 @@ class AccountRepo:
         self,
         entity_id: uuid.UUID,
         account_type: Optional[str] = None,
+        subtype: Optional[str] = None,
+        symbol: Optional[str] = None,
+        protocol: Optional[str] = None,
+        wallet_id: Optional[uuid.UUID] = None,
     ) -> list[Account]:
         base = (
             select(Account)
@@ -26,6 +30,14 @@ class AccountRepo:
         )
         if account_type:
             base = base.where(Account.account_type == account_type)
+        if subtype is not None:
+            base = base.where(Account.subtype == subtype)
+        if symbol is not None:
+            base = base.where(Account.symbol == symbol)
+        if protocol is not None:
+            base = base.where(Account.protocol == protocol)
+        if wallet_id is not None:
+            base = base.where(Account.wallet_id == wallet_id)
         result = await self._session.execute(base.order_by(Account.account_type, Account.label))
         return list(result.scalars().all())
 

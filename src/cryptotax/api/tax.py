@@ -100,11 +100,32 @@ async def calculate_tax(body: TaxCalculateRequest, db: DbDep) -> TaxCalculateRes
 async def get_realized_gains(
     db: DbDep,
     entity_id: Optional[uuid.UUID] = Query(None, description="Entity ID to scope gains"),
+    symbol: Optional[str] = Query(None),
+    date_from: Optional[datetime] = Query(None, description="Filter by sell date from"),
+    date_to: Optional[datetime] = Query(None, description="Filter by sell date to"),
+    gain_only: bool = Query(False, description="Only include lots with gain_usd > 0"),
+    loss_only: bool = Query(False, description="Only include lots with gain_usd < 0"),
+    min_holding_days: Optional[int] = Query(None, ge=0),
+    max_holding_days: Optional[int] = Query(None, ge=0),
 ) -> list[ClosedLotResponse]:
     """List all realized gains (closed lots), optionally scoped by entity."""
     stmt = select(ClosedLotRecord).order_by(ClosedLotRecord.sell_timestamp.desc())
     if entity_id is not None:
         stmt = stmt.where(ClosedLotRecord.entity_id == entity_id)
+    if symbol is not None:
+        stmt = stmt.where(ClosedLotRecord.symbol == symbol)
+    if date_from is not None:
+        stmt = stmt.where(ClosedLotRecord.sell_timestamp >= date_from)
+    if date_to is not None:
+        stmt = stmt.where(ClosedLotRecord.sell_timestamp <= date_to)
+    if gain_only:
+        stmt = stmt.where(ClosedLotRecord.gain_usd > 0)
+    if loss_only:
+        stmt = stmt.where(ClosedLotRecord.gain_usd < 0)
+    if min_holding_days is not None:
+        stmt = stmt.where(ClosedLotRecord.holding_days >= min_holding_days)
+    if max_holding_days is not None:
+        stmt = stmt.where(ClosedLotRecord.holding_days <= max_holding_days)
     result = await db.execute(stmt)
     records = result.scalars().all()
     return [
@@ -126,11 +147,17 @@ async def get_realized_gains(
 async def get_open_lots(
     db: DbDep,
     entity_id: Optional[uuid.UUID] = Query(None, description="Entity ID to scope lots"),
+    symbol: Optional[str] = Query(None),
+    min_quantity: Optional[float] = Query(None, ge=0, description="Minimum remaining quantity"),
 ) -> list[OpenLotResponse]:
     """List all open (unrealized) positions, optionally scoped by entity."""
     stmt = select(OpenLotRecord).order_by(OpenLotRecord.buy_timestamp.asc())
     if entity_id is not None:
         stmt = stmt.where(OpenLotRecord.entity_id == entity_id)
+    if symbol is not None:
+        stmt = stmt.where(OpenLotRecord.symbol == symbol)
+    if min_quantity is not None:
+        stmt = stmt.where(OpenLotRecord.remaining_quantity >= min_quantity)
     result = await db.execute(stmt)
     records = result.scalars().all()
     return [
