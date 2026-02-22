@@ -58,12 +58,38 @@ export function calculateTax(body: TaxCalculateRequest) {
   })
 }
 
-export function getRealizedGains(entityId?: string) {
-  return apiFetch<ClosedLotResponse[]>(withEntityId('/tax/realized-gains', entityId))
+export interface RealizedGainsFilters {
+  symbol?: string
+  date_from?: string
+  date_to?: string
+  gain_only?: boolean
+  loss_only?: boolean
 }
 
-export function getOpenLots(entityId?: string) {
-  return apiFetch<OpenLotResponse[]>(withEntityId('/tax/open-lots', entityId))
+export interface OpenLotsFilters {
+  symbol?: string
+  min_quantity?: number
+}
+
+export function getRealizedGains(entityId?: string, filters: RealizedGainsFilters = {}) {
+  const params = new URLSearchParams()
+  if (filters.symbol) params.set('symbol', filters.symbol)
+  if (filters.date_from) params.set('date_from', filters.date_from)
+  if (filters.date_to) params.set('date_to', filters.date_to)
+  if (filters.gain_only !== undefined) params.set('gain_only', String(filters.gain_only))
+  if (filters.loss_only !== undefined) params.set('loss_only', String(filters.loss_only))
+  const qs = params.toString()
+  const path = `/tax/realized-gains${qs ? `?${qs}` : ''}`
+  return apiFetch<ClosedLotResponse[]>(withEntityId(path, entityId))
+}
+
+export function getOpenLots(entityId?: string, filters: OpenLotsFilters = {}) {
+  const params = new URLSearchParams()
+  if (filters.symbol) params.set('symbol', filters.symbol)
+  if (filters.min_quantity !== undefined) params.set('min_quantity', String(filters.min_quantity))
+  const qs = params.toString()
+  const path = `/tax/open-lots${qs ? `?${qs}` : ''}`
+  return apiFetch<OpenLotResponse[]>(withEntityId(path, entityId))
 }
 
 export function getTaxSummary(entityId?: string) {
