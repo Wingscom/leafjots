@@ -1,10 +1,20 @@
-import { useState } from 'react'
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CheckCircle, XCircle } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useJournalEntries, useJournalEntry } from '../hooks/useJournal'
-import type { JournalFilters } from '../api/journal'
+import { useWallets } from '../hooks/useWallets'
+import {
+  FilterBar,
+  DateRangePicker,
+  WalletSelector,
+  SymbolInput,
+  EntryTypeSelector,
+  AccountTypeSelector,
+  ProtocolSelector,
+} from '../components/filters'
+import type { JournalFilters, JournalSplit } from '../api/journal'
 
-const ENTRY_TYPES = ['', 'SWAP', 'TRANSFER', 'GAS_FEE', 'UNKNOWN']
 const PAGE_SIZE = 25
 
 const TYPE_COLORS: Record<string, string> = {
@@ -18,39 +28,124 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleString()
 }
 
+function formatVnd(v: number | null): string {
+  if (v === null || v === undefined) return '\u2014'
+  return `VND ${Math.round(v).toLocaleString()}`
+}
+
+function isSplitsBalanced(splits: JournalSplit[]): boolean {
+  // Splits are balanced when the sum of value_usd across all splits is approximately zero
+  const total = splits.reduce((sum, s) => sum + (s.value_usd ?? 0), 0)
+  return Math.abs(total) < 0.01
+}
+
 export default function Journal() {
-  const [filters, setFilters] = useState<JournalFilters>({ limit: PAGE_SIZE, offset: 0 })
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Read initial filter state from URL params
+  const [dateFrom, setDateFrom] = useState<string | null>(searchParams.get('date_from'))
+  const [dateTo, setDateTo] = useState<string | null>(searchParams.get('date_to'))
+  const [walletId, setWalletId] = useState<string | null>(searchParams.get('wallet_id'))
+  const [symbol, setSymbol] = useState<string>(searchParams.get('symbol') ?? '')
+  const [entryType, setEntryType] = useState<string | null>(searchParams.get('entry_type'))
+  const [accountType, setAccountType] = useState<string | null>(searchParams.get('account_type'))
+  const [protocol, setProtocol] = useState<string | null>(searchParams.get('protocol'))
+  const [offset, setOffset] = useState(0)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  const { data: walletData } = useWallets()
+  const wallets = (walletData?.wallets ?? []).map((w) => ({
+    id: w.id,
+    label: w.label ?? w.address ?? w.id,
+  }))
+
+  // Sync filter state to URL params
+  useEffect(() => {
+    const params: Record<string, string> = {}
+    if (dateFrom) params.date_from = dateFrom
+    if (dateTo) params.date_to = dateTo
+    if (walletId) params.wallet_id = walletId
+    if (symbol) params.symbol = symbol
+    if (entryType) params.entry_type = entryType
+    if (accountType) params.account_type = accountType
+    if (protocol) params.protocol = protocol
+    setSearchParams(params, { replace: true })
+  }, [dateFrom, dateTo, walletId, symbol, entryType, accountType, protocol, setSearchParams])
+
+  const filters: JournalFilters = {
+    limit: PAGE_SIZE,
+    offset,
+    date_from: dateFrom ?? undefined,
+    date_to: dateTo ?? undefined,
+    wallet_id: walletId ?? undefined,
+    symbol: symbol || undefined,
+    entry_type: entryType ?? undefined,
+    account_type: accountType ?? undefined,
+    protocol: protocol ?? undefined,
+  }
 
   const { data, isLoading, error } = useJournalEntries(filters)
   const { data: detail } = useJournalEntry(expandedId)
 
-  const page = Math.floor((filters.offset ?? 0) / PAGE_SIZE)
+  const page = Math.floor(offset / PAGE_SIZE)
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0
+
+  function handleReset() {
+    setDateFrom(null)
+    setDateTo(null)
+    setWalletId(null)
+    setSymbol('')
+    setEntryType(null)
+    setAccountType(null)
+    setProtocol(null)
+    setOffset(0)
+    setSearchParams({}, { replace: true })
+  }
+
+  function updateFilter() {
+    setOffset(0)
+  }
 
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Journal Entries</h2>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 flex flex-wrap gap-3 items-end">
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Entry Type</label>
-          <select
-            value={filters.entry_type ?? ''}
-            onChange={(e) => setFilters({ ...filters, entry_type: e.target.value || undefined, offset: 0 })}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {ENTRY_TYPES.map((t) => (
-              <option key={t} value={t}>{t || 'All types'}</option>
-            ))}
-          </select>
-        </div>
-        {data && (
-          <span className="text-sm text-gray-500 ml-auto">
-            {data.total.toLocaleString()} entr{data.total !== 1 ? 'ies' : 'y'}
-          </span>
-        )}
+      <div className="mb-6">
+        <FilterBar onReset={handleReset}>
+          <DateRangePicker
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateFromChange={(v) => { setDateFrom(v); updateFilter() }}
+            onDateToChange={(v) => { setDateTo(v); updateFilter() }}
+          />
+          <WalletSelector
+            value={walletId}
+            onChange={(v) => { setWalletId(v); updateFilter() }}
+            wallets={wallets}
+          />
+          <SymbolInput
+            value={symbol}
+            onChange={(v) => { setSymbol(v); updateFilter() }}
+          />
+          <EntryTypeSelector
+            value={entryType}
+            onChange={(v) => { setEntryType(v); updateFilter() }}
+          />
+          <AccountTypeSelector
+            value={accountType}
+            onChange={(v) => { setAccountType(v); updateFilter() }}
+          />
+          <ProtocolSelector
+            value={protocol}
+            onChange={(v) => { setProtocol(v); updateFilter() }}
+          />
+          {data && (
+            <span className="text-sm text-gray-500 ml-auto self-center">
+              {data.total.toLocaleString()} entr{data.total !== 1 ? 'ies' : 'y'}
+            </span>
+          )}
+        </FilterBar>
       </div>
 
       {/* Journal Table */}
@@ -72,6 +167,7 @@ export default function Journal() {
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Timestamp</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Type</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Description</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-600">Balance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -96,14 +192,14 @@ export default function Journal() {
                 <span className="text-sm text-gray-500">Page {page + 1} of {totalPages}</span>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setFilters({ ...filters, offset: Math.max(0, (filters.offset ?? 0) - PAGE_SIZE) })}
+                    onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
                     disabled={page === 0}
                     className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-40 transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" /> Prev
                   </button>
                   <button
-                    onClick={() => setFilters({ ...filters, offset: (filters.offset ?? 0) + PAGE_SIZE })}
+                    onClick={() => setOffset(offset + PAGE_SIZE)}
                     disabled={page >= totalPages - 1}
                     className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-40 transition-colors"
                   >
@@ -123,10 +219,12 @@ interface EntryRowProps {
   entry: { id: string; timestamp: string; entry_type: string; description: string }
   isExpanded: boolean
   onToggle: () => void
-  detail?: { splits: Array<{ id: string; account_label: string; account_type: string; symbol: string; quantity: number; value_usd: number | null }> } | undefined
+  detail?: { splits: JournalSplit[] } | undefined
 }
 
 function EntryRow({ entry, isExpanded, onToggle, detail }: EntryRowProps) {
+  const balanced = detail ? isSplitsBalanced(detail.splits) : null
+
   return (
     <>
       <tr className="hover:bg-gray-50 cursor-pointer" onClick={onToggle}>
@@ -140,10 +238,19 @@ function EntryRow({ entry, isExpanded, onToggle, detail }: EntryRowProps) {
           </span>
         </td>
         <td className="px-4 py-3 text-gray-700 text-sm">{entry.description}</td>
+        <td className="px-4 py-3 text-center">
+          {balanced === null ? (
+            <span className="text-gray-300 text-xs">—</span>
+          ) : balanced ? (
+            <CheckCircle className="w-4 h-4 text-green-500 inline" />
+          ) : (
+            <XCircle className="w-4 h-4 text-red-500 inline" />
+          )}
+        </td>
       </tr>
       {isExpanded && detail && (
         <tr>
-          <td colSpan={4} className="px-6 py-3 bg-gray-50">
+          <td colSpan={5} className="px-6 py-3 bg-gray-50">
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-gray-500">
@@ -152,6 +259,7 @@ function EntryRow({ entry, isExpanded, onToggle, detail }: EntryRowProps) {
                   <th className="px-2 py-1 text-left font-medium">Symbol</th>
                   <th className="px-2 py-1 text-right font-medium">Quantity</th>
                   <th className="px-2 py-1 text-right font-medium">USD</th>
+                  <th className="px-2 py-1 text-right font-medium">VND</th>
                 </tr>
               </thead>
               <tbody>
@@ -170,11 +278,27 @@ function EntryRow({ entry, isExpanded, onToggle, detail }: EntryRowProps) {
                     )}>
                       {s.quantity > 0 ? '+' : ''}{s.quantity}
                     </td>
-                    <td className="px-2 py-1 text-right text-gray-400">{s.value_usd ?? '\u2014'}</td>
+                    <td className="px-2 py-1 text-right text-gray-400">
+                      {s.value_usd !== null ? `$${s.value_usd.toFixed(2)}` : '\u2014'}
+                    </td>
+                    <td className="px-2 py-1 text-right text-gray-400">
+                      {formatVnd(s.value_vnd)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {/* Balance check summary */}
+            <div className={clsx(
+              'mt-2 flex items-center gap-1.5 text-xs font-medium',
+              isSplitsBalanced(detail.splits) ? 'text-green-600' : 'text-red-600',
+            )}>
+              {isSplitsBalanced(detail.splits) ? (
+                <><CheckCircle className="w-3.5 h-3.5" /> Entry is balanced</>
+              ) : (
+                <><XCircle className="w-3.5 h-3.5" /> Entry is NOT balanced — splits do not sum to zero</>
+              )}
+            </div>
           </td>
         </tr>
       )}

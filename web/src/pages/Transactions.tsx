@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useTransactions, useTransaction } from '../hooks/useTransactions'
+import { useWallets } from '../hooks/useWallets'
+import { FilterBar, DateRangePicker, WalletSelector, ChainSelector } from '../components/filters'
 import type { TransactionFilters } from '../api/transactions'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -11,7 +13,6 @@ const STATUS_STYLES: Record<string, string> = {
   IGNORED: 'bg-yellow-100 text-yellow-700',
 }
 
-const CHAINS = ['', 'ethereum', 'arbitrum', 'optimism', 'polygon', 'base', 'bsc', 'avalanche']
 const STATUSES = ['', 'LOADED', 'PARSED', 'ERROR', 'IGNORED']
 const PAGE_SIZE = 25
 
@@ -49,49 +50,80 @@ function formatWei(wei: number | null): string {
 
 export default function Transactions() {
   const [filters, setFilters] = useState<TransactionFilters>({ limit: PAGE_SIZE, offset: 0 })
+  const [dateFrom, setDateFrom] = useState<string | null>(null)
+  const [dateTo, setDateTo] = useState<string | null>(null)
+  const [walletId, setWalletId] = useState<string | null>(null)
+  const [chain, setChain] = useState<string | null>(null)
   const [selectedHash, setSelectedHash] = useState<string | null>(null)
 
-  const { data, isLoading, error } = useTransactions(filters)
+  const { data: walletData } = useWallets()
+  const wallets = (walletData?.wallets ?? []).map((w) => ({
+    id: w.id,
+    label: w.label ?? w.address ?? w.id,
+  }))
+
+  const activeFilters: TransactionFilters = {
+    ...filters,
+    date_from: dateFrom ?? undefined,
+    date_to: dateTo ?? undefined,
+    wallet_id: walletId ?? undefined,
+    chain: chain ?? undefined,
+  }
+
+  const { data, isLoading, error } = useTransactions(activeFilters)
   const { data: detail } = useTransaction(selectedHash)
 
   const page = Math.floor((filters.offset ?? 0) / PAGE_SIZE)
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0
+
+  function handleReset() {
+    setDateFrom(null)
+    setDateTo(null)
+    setWalletId(null)
+    setChain(null)
+    setFilters({ limit: PAGE_SIZE, offset: 0 })
+  }
 
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Transactions</h2>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 flex flex-wrap gap-3 items-end">
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Chain</label>
-          <select
-            value={filters.chain ?? ''}
-            onChange={(e) => setFilters({ ...filters, chain: e.target.value || undefined, offset: 0 })}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {CHAINS.map((c) => (
-              <option key={c} value={c}>{c || 'All chains'}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
-          <select
-            value={filters.status ?? ''}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value || undefined, offset: 0 })}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>{s || 'All statuses'}</option>
-            ))}
-          </select>
-        </div>
-        {data && (
-          <span className="text-sm text-gray-500 ml-auto">
-            {data.total.toLocaleString()} transaction{data.total !== 1 ? 's' : ''}
-          </span>
-        )}
+      <div className="mb-6">
+        <FilterBar onReset={handleReset}>
+          <DateRangePicker
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateFromChange={(v) => { setDateFrom(v); setFilters((f) => ({ ...f, offset: 0 })) }}
+            onDateToChange={(v) => { setDateTo(v); setFilters((f) => ({ ...f, offset: 0 })) }}
+          />
+          <WalletSelector
+            value={walletId}
+            onChange={(v) => { setWalletId(v); setFilters((f) => ({ ...f, offset: 0 })) }}
+            wallets={wallets}
+          />
+          <ChainSelector
+            value={chain}
+            onChange={(v) => { setChain(v); setFilters((f) => ({ ...f, offset: 0 })) }}
+          />
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Status</label>
+            <select
+              value={filters.status ?? ''}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value || undefined, offset: 0 })}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>{s || 'All statuses'}</option>
+              ))}
+            </select>
+          </div>
+          {data && (
+            <span className="text-sm text-gray-500 ml-auto self-center">
+              {data.total.toLocaleString()} transaction{data.total !== 1 ? 's' : ''}
+            </span>
+          )}
+        </FilterBar>
       </div>
 
       {/* TX Table */}

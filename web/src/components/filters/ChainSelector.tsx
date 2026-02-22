@@ -1,12 +1,12 @@
 const CHAINS = [
-  'Ethereum',
-  'Arbitrum',
-  'Optimism',
-  'Polygon',
-  'Base',
-  'BSC',
-  'Avalanche',
-  'CEX',
+  { value: 'ethereum', label: 'Ethereum' },
+  { value: 'arbitrum', label: 'Arbitrum' },
+  { value: 'optimism', label: 'Optimism' },
+  { value: 'polygon', label: 'Polygon' },
+  { value: 'base', label: 'Base' },
+  { value: 'bsc', label: 'BSC' },
+  { value: 'avalanche', label: 'Avalanche' },
+  { value: 'cex', label: 'CEX' },
 ]
 
 interface ChainSelectorProps {
@@ -25,8 +25,8 @@ export default function ChainSelector({ value, onChange }: ChainSelectorProps) {
       >
         <option value="">All Chains</option>
         {CHAINS.map((chain) => (
-          <option key={chain} value={chain}>
-            {chain}
+          <option key={chain.value} value={chain.value}>
+            {chain.label}
           </option>
         ))}
       </select>
