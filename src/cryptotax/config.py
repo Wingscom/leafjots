@@ -3,10 +3,10 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     db_host: str = "localhost"
-    db_port: int = 5432
+    db_port: int = 54377
     db_user: str = "postgres"
     db_password: str = "postgres"
-    db_name: str = "cryptotax"
+    db_name: str = "leafjots"
     redis_url: str = "redis://localhost:6379/0"
     alchemy_api_key: str = ""
     etherscan_api_key: str = ""
