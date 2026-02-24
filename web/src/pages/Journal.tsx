@@ -279,7 +279,7 @@ function EntryRow({ entry, isExpanded, onToggle, detail }: EntryRowProps) {
                       {s.quantity > 0 ? '+' : ''}{s.quantity}
                     </td>
                     <td className="px-2 py-1 text-right text-gray-400">
-                      {s.value_usd !== null ? `$${s.value_usd.toFixed(2)}` : '\u2014'}
+                      {s.value_usd !== null ? `$${s.value_usd}` : '\u2014'}
                     </td>
                     <td className="px-2 py-1 text-right text-gray-400">
                       {formatVnd(s.value_vnd)}
