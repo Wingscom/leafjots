@@ -1,7 +1,11 @@
-const BASE_URL = '/api'
+const BASE_URL = import.meta.env.VITE_BASE_URL 
+const PORT = import.meta.env.VITE_PORT_API 
+
+const BASE_PATH = '/api'
+const API_URL = `${BASE_URL}:${PORT}${BASE_PATH}`
 
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${API_URL}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     ...options,
   })
