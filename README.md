@@ -62,7 +62,7 @@ Team Drive chứa 2 file cần copy vào project root:
 | `.env` | API keys (Alchemy, Etherscan, CoinGecko, Helius) — thay cho bước 2 |
 | `leafjots_dump.sql` | DB dump có sẵn data mẫu (395 TXs, 478 journal entries) — dùng ở bước 5 |
 
-> **Port note:** LeafJots dùng PostgreSQL port **5433** và Redis port **6380** (không phải default) để tránh conflict với các project khác.
+> **Port note:** LeafJots dùng PostgreSQL port **54377** và Redis port **6380** (không phải default) để tránh conflict với các project khác.
 
 ### First Steps
 
